@@ -40,6 +40,21 @@ header-includes: |
 
 \vfill
 
+# Traditional Append-Only Structures: Blockchains
+
+```haskell
+data Auth a = Auth a Digest
+
+type Log a = [Auth a]
+
+mkauth :: (Hashable a) => a -> Log a -> Auth a
+mkauth x []              = error "Log not initialized"
+mkauth x (Auth y dy : l) = Auth x (hash (hash x ++ dy))
+
+append :: (Hashable a) => a -> Log a -> Log a
+append x l = mkauth x l : l
+```
+
 # Problem: Dynamic Participation
 
 \vfill
@@ -74,16 +89,29 @@ header-includes: |
 
 # Dynamic Participation: Verifying Claims
 
-- How does $p$ verifies some claim about block $i < n$?
+Say $p$ began participation at $n$, \pause now say $p$ receives a claim about some
+entry $e_i$, for $i < n$. How should $p$ check the claim's veracity?
+
+\vfill
+
+1. Download entries between $i$ and $n$; rebuild the hashes; check
+rebuild hash for $e_n$ against known one
+1. Forward the claim to some other participant
+
+\vfill
+
+After a few rounds of dynamic participation no participant might contain all entries.
+
+\vfill
 
 # Append-Only Authenticated Skip Lists (AAOSL)
 
-- Make $\hash\;e_n$ depend on entries a power of two away\pause
-  + Linear chainning connects only the $0^{\text{th}}$ powers of two:
+- Originally from Baker and Maniatis ([arxiv pdf](http://arxiv.org/abs/cs/0302010))
+- Make $\hash\;e_n$ depend on more than one entry.\pause
+  + Let $n = 2^l * d$, for an odd $d$, $\hash\;e_d$ will depend
+  on $e_i$, $i \in \{ e_{2^l*d - 2^k} \mid k \leq l \}$.\pause
 
-
-\vfill
-\hspace{-1em}\resizebox{\textwidth}{!}{\begin{tikzpicture}
+\resizebox{\textwidth}{!}{\begin{tikzpicture}
 	\node (gen) {$\star$};
 	\node [right = of gen] (e1) {$e_1$};
 	\draw[->] (e1.north west) to[out=135, in=45] (gen.north east);
@@ -103,7 +131,6 @@ header-includes: |
 	\draw[->] (e8.north west) to[out=135, in=45] (e7.north east);
 	\node [right = of e8] (e9) {$e_9$};
 	\draw[->] (e9.north west) to[out=135, in=45] (e8.north east);
-	\pause
 	\draw[->] ($ (e2.north west) + (.1,0) $) to[out=110,in=70] ($ (gen.north east) - (.1,0) $);
 	\draw[->] ($ (e4.north west) + (.1,0) $) to[out=110,in=70] ($ (e2.north east) - (.1,0) $);
 	\draw[->] ($ (e6.north west) + (.1,0) $) to[out=110,in=70] ($ (e4.north east) - (.1,0) $);
@@ -115,8 +142,10 @@ header-includes: |
 	\draw[->] ($ (e8.north west) + (.3,0) $) to[out=100,in=90] ($ (gen.north east) - (.3,0) $);
 \onslide<1->
 \end{tikzpicture}}
-\vfill
 
+\pause
+- The _level_ of $2^l*d$ is defined as $l+1$, and indicates the number of hops _out_ of $2^l*d$.
+  + i.e., index 8 has level $4$ and depends on four distinct hashes: 7,6,4 and $\star$.
 
 # Advancement Proofs
 
