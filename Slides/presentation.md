@@ -42,18 +42,26 @@ header-includes: |
 
 # Traditional Append-Only Structures: Blockchains
 
+Or, in Haskell:
+
 ```haskell
 data Auth a = Auth a Digest
 
-type Log a = [Auth a]
+digest :: Auth a -> Digest
+digest (Auth _ dig) = dig
 
-mkauth :: (Hashable a) => a -> Log a -> Auth a
-mkauth x []              = error "Log not initialized"
-mkauth x (Auth y dy : l) = Auth x (hash (hash x ++ dy))
+type Log a = [Auth a]
 
 append :: (Hashable a) => a -> Log a -> Log a
 append x l = mkauth x l : l
 ```
+\pause
+```haskell
+mkauth :: (Hashable a) => a -> Log a -> Auth a
+mkauth x []              = error "Log not initialized"
+mkauth x (Auth y dy : l) = Auth x (hash (hash x ++ dy))
+```
+
 
 # Problem: Dynamic Participation
 
@@ -92,11 +100,12 @@ append x l = mkauth x l : l
 Say $p$ began participation at $n$, \pause now say $p$ receives a claim about some
 entry $e_i$, for $i < n$. How should $p$ check the claim's veracity?
 
+\pause
 \vfill
 
 1. Download entries between $i$ and $n$; rebuild the hashes; check
-rebuild hash for $e_n$ against known one
-1. Forward the claim to some other participant
+rebuild hash for $e_n$ against known one\pause
+1. Forward the claim to some other participant\pause
 
 \vfill
 
@@ -108,8 +117,8 @@ After a few rounds of dynamic participation no participant might contain all ent
 
 - Originally from Baker and Maniatis ([arxiv pdf](http://arxiv.org/abs/cs/0302010))
 - Make $\hash\;e_n$ depend on more than one entry.\pause
-  + Let $n = 2^l * d$, for an odd $d$, $\hash\;e_d$ will depend
-  on $e_i$, $i \in \{ e_{2^l*d - 2^k} \mid k \leq l \}$.\pause
+  + Let $n = 2^l \times d$, for an odd $d$, $\hash\;e_d$ will depend
+  on $e_i$, $i \in \{ e_{2^l \times d - 2^k} \mid k \leq l \}$.\pause
 
 \resizebox{\textwidth}{!}{\begin{tikzpicture}
 	\node (gen) {$\star$};
@@ -144,10 +153,70 @@ After a few rounds of dynamic participation no participant might contain all ent
 \end{tikzpicture}}
 
 \pause
-- The _level_ of $2^l*d$ is defined as $l+1$, and indicates the number of hops _out_ of $2^l*d$.
-  + i.e., index 8 has level $4$ and depends on four distinct hashes: 7,6,4 and $\star$.
+- The _level_ of $n = 2^l*d$ is defined as $l+1$
+  + Indicates number of dependencies of $n$.
+  + Example: level of $8 = 2^3 \times 1$ is $4$.
+
+# Append-Only Authenticated Skip Lists (AAOSL)
+
+Or, in Haskell:
+
+```haskell
+append :: (Hashable a) => a -> Log a -> Log a
+append x l = mkauth x l : l
+```
+\pause
+```haskell
+mkauth :: (Hashable a) => a -> Log a -> Auth a
+mkauth a log =
+  let  j     = length log
+       deps  = [ digest (log ! j - pow 2 l)
+		          | l <- [0 .. level j - 1] ]
+  in Auth a (auth j (hash a) deps)
+```
+\pause
+```haskell
+auth :: Index -> Digest -> [Digest] -> Digest
+auth j datumDig lvlDigs =
+  hash (concat (encode j : datumDig : lvlDigs))
+```
 
 # Advancement Proofs
+
+- Enables prover to convince verifier that its log advanced from index $i$
+to $j \geq i$
+
+- Consists of a _merkle path_ through the skip pointers of the log
+
+\resizebox{\textwidth}{!}{\begin{tikzpicture}
+	\node (e6) {$e_6$};
+	\node (e5) at ($ (e6) - (.7,-.4) $) {};
+	\node (e4) at ($ (e5) + (0,.5) $) {};
+	\node (gen) at ($ (e4) + (0,.6) $) {};
+	\draw[->] (e6.north west) to[out=135, in=0] (e5);
+	\node [right = of e6] (e7) {$e_7$};
+	\draw[->] (e7.north west) to[out=135, in=45] (e6.north east);
+	\node [right = of e7] (e8) {$e_8$};
+	\draw[->] (e8.north west) to[out=135, in=45] (e7.north east);
+	\node [right = of e8] (e9) {$e_9$};
+	\draw[->] (e9.north west) to[out=135, in=45] (e8.north east);
+	\node [right = of e9] (e10) {$e_{10}$};
+	\draw[->] (e10.north west) to[out=135, in=45] (e9.north east);
+	\node [right = of e10] (e11) {$e_{11}$};
+	\draw[->] (e11.north west) to[out=135, in=45] (e10.north east);
+	\node [right = of e11] (e12) {$e_{12}$};
+	\draw[->] (e12.north west) to[out=135, in=45] (e11.north east);
+	\draw[->] ($ (e6.north west) + (.1,0) $) to[out=110,in=0] (e4);
+	\draw[->] ($ (e8.north west) + (.1,0) $) to[out=110,in=70] ($ (e6.north east) - (.1,0) $);
+	\draw[->] ($ (e10.north west) + (.1,0) $) to[out=110,in=70] ($ (e8.north east) - (.1,0) $);
+	\draw[->] ($ (e12.north west) + (.1,0) $) to[out=110,in=70] ($ (e10.north east) - (.1,0) $);
+	\draw[->] ($ (e8.north west) + (.2,0) $) to[out=105,in=0] ($ (e4) + (0,.6) $);
+	\draw[->] ($ (e8.north west) + (.3,0) $) to[out=100,in=0] ($ (gen) + (0,.4) $);
+	\draw[->] ($ (e12.north west) + (.2,0) $) to[out=105,in=75] ($ (e8.north east) - (.2,0) $);
+\onslide<1->
+\end{tikzpicture}}
+
+
 
 # Membership Proofs
 
