@@ -4,6 +4,7 @@ author: Victor Cacciari Miraldo, Harold Carr, Mark Moir, Lisandra Silva and Guy 
 header-includes: |
   \usepackage{tikz}
   \usetikzlibrary{positioning}
+  \usetikzlibrary{shapes}
   \usetikzlibrary{calc}
 ---
 
@@ -140,6 +141,7 @@ After a few rounds of dynamic participation no participant might contain all ent
 	\draw[->] (e8.north west) to[out=135, in=45] (e7.north east);
 	\node [right = of e8] (e9) {$e_9$};
 	\draw[->] (e9.north west) to[out=135, in=45] (e8.north east);
+	\pause
 	\draw[->] ($ (e2.north west) + (.1,0) $) to[out=110,in=70] ($ (gen.north east) - (.1,0) $);
 	\draw[->] ($ (e4.north west) + (.1,0) $) to[out=110,in=70] ($ (e2.north east) - (.1,0) $);
 	\draw[->] ($ (e6.north west) + (.1,0) $) to[out=110,in=70] ($ (e4.north east) - (.1,0) $);
@@ -183,21 +185,22 @@ auth j datumDig lvlDigs =
 
 # Advancement Proofs
 
-- Enables prover to convince verifier that its log advanced from index $i$
-to $j \geq i$
+- Proves to a verifier that log advanced from $i$
+to $j \geq i$\pause
 
-- Consists of a _merkle path_ through the skip pointers of the log
+- Example: an $AdvProof$ from 7 to 12
+  + enables to construct $\hash\;e_{12}$ given $\hash\;e_{7}$ \pause
 
 \resizebox{\textwidth}{!}{\begin{tikzpicture}
 	\node (e6) {$e_6$};
-	\node (e5) at ($ (e6) - (.7,-.4) $) {};
-	\node (e4) at ($ (e5) + (0,.5) $) {};
-	\node (gen) at ($ (e4) + (0,.6) $) {};
-	\draw[->] (e6.north west) to[out=135, in=0] (e5);
+	\node (e5) at ($ (e6) - (.9,-.4) $) {$e_5$};
+	\node (e4) at ($ (e5) + (0,.8) $) {$e_4$};
+	\node (gen) at ($ (e4) + (0,.7) $) {$\star$};
+	\draw[->] (e6.north west) to[out=135, in=0] (e5.east);
 	\node [right = of e6] (e7) {$e_7$};
 	\draw[->] (e7.north west) to[out=135, in=45] (e6.north east);
 	\node [right = of e7] (e8) {$e_8$};
-	\draw[->] (e8.north west) to[out=135, in=45] (e7.north east);
+	\draw[->, very thick, color=blue!70!black] (e8.north west) to[out=135, in=45] (e7.north east);
 	\node [right = of e8] (e9) {$e_9$};
 	\draw[->] (e9.north west) to[out=135, in=45] (e8.north east);
 	\node [right = of e9] (e10) {$e_{10}$};
@@ -206,17 +209,51 @@ to $j \geq i$
 	\draw[->] (e11.north west) to[out=135, in=45] (e10.north east);
 	\node [right = of e11] (e12) {$e_{12}$};
 	\draw[->] (e12.north west) to[out=135, in=45] (e11.north east);
-	\draw[->] ($ (e6.north west) + (.1,0) $) to[out=110,in=0] (e4);
+	\draw[->] ($ (e6.north west) + (.1,0) $) to[out=110,in=345] (e4.south east);
 	\draw[->] ($ (e8.north west) + (.1,0) $) to[out=110,in=70] ($ (e6.north east) - (.1,0) $);
 	\draw[->] ($ (e10.north west) + (.1,0) $) to[out=110,in=70] ($ (e8.north east) - (.1,0) $);
 	\draw[->] ($ (e12.north west) + (.1,0) $) to[out=110,in=70] ($ (e10.north east) - (.1,0) $);
-	\draw[->] ($ (e8.north west) + (.2,0) $) to[out=105,in=0] ($ (e4) + (0,.6) $);
-	\draw[->] ($ (e8.north west) + (.3,0) $) to[out=100,in=0] ($ (gen) + (0,.4) $);
-	\draw[->] ($ (e12.north west) + (.2,0) $) to[out=105,in=75] ($ (e8.north east) - (.2,0) $);
+	\draw[->] ($ (e8.north west) + (.2,0) $) to[out=105,in=0] (e4.east);
+	\draw[->] ($ (e8.north west) + (.3,0) $) to[out=100,in=0] ($ (gen.east) + (0.05,0) $);
+	\draw[->, very thick, color=blue!70!black] ($ (e12.north west) + (.2,0) $) to[out=105,in=75] ($ (e8.north east) - (.2,0) $);
+	\pause
+	\node [circle, draw=blue!70!black, inner sep=2.2mm] (c11) at (e11) {};
+	\node [circle, draw=blue!70!black, inner sep=2.2mm] (c10) at (e10) {};
+	\node [circle, draw=blue!70!black, inner sep=2.2mm] (c6) at (e6) {};
+	\node [circle, draw=blue!70!black, inner sep=2.2mm] (c4) at (e4) {};
+	\node [circle, draw=blue!70!black, inner sep=2.2mm] (cgen) at (gen) {};
 \onslide<1->
 \end{tikzpicture}}
 
+\pause
+```haskell
+adv7_12 = ( Hop d12 12 2 (Hop d8 8 0 Done)
+          , M.fromList [ (i, digestFor log i)
+                       | i <- [0,4,6,10,11] ])
+```
 
+# Advancement Proofs
+
+```haskell
+rebuild :: AdvProof -> Digest -> Digest
+```
+\pause
+\vfill
+
+```haskell
+adv7_12 = ( Hop d12 12 2 (Hop d8 8 0 Done)
+          , M.fromList [ (i, digestFor log i)
+                       | i <- [0,4,6,10,11] ])
+```
+\pause
+\vfill
+```haskell
+rebuild adv7_12 my_h7
+  = let r8  = auth 8  d8 [my_h7, h6, h4, h0]
+        r12 = auth 12 d12 [h11,h10,r8]
+    in r12
+```
+\vfill
 
 # Membership Proofs
 

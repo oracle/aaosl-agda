@@ -1,2 +1,2 @@
 all: presentation.md
-	pandoc -t beamer -s presentation.md -o presentation.pdf
+	pandoc -t beamer --highlight=kate -s presentation.md -o presentation.pdf
