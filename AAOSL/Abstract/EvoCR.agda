@@ -54,7 +54,14 @@ module AAOSL.Abstract.EvoCR
 
   last-bef-correct : ∀{j i k}(a : AdvPath j i)(i<k : i < k)(k≤j : k ≤′ j)
                    → last-bef a i<k k≤j ∈AP a
-  last-bef-correct = {!!}
+  last-bef-correct {j} a i<k ≤′-refl = ∈AP-src
+  last-bef-correct AdvDone i<k (≤′-step k≤j) = ⊥-elim (1+n≰n (≤-unstep (≤-trans i<k (≤′⇒≤ k≤j))))
+  last-bef-correct {k = k} (AdvThere d h a) i<k (≤′-step k≤j)
+    with hop-tgt h ≤?ℕ k
+  ...| yes th≤k = step (<⇒≢ (hop-< h)) ∈AP-src
+  ...| no th>k
+    with last-bef-correct a i<k (≤⇒≤′ (≰⇒≥ th>k))
+  ...| ind = step (<⇒≢ (≤-trans (s≤s (∈AP-≤ ind)) (hop-< h))) ind
 
   lemma5-hop : ∀{j i}(a : AdvPath j i)
              → ∀{k} → j < k
@@ -106,8 +113,9 @@ module AAOSL.Abstract.EvoCR
   ...| no th≢k
     with hop-tgt h ≤?ℕ k
   ...| yes th≤k = ∈AP-src
-  -- need aux lemma about first-aft a < tgt a
-  ...| no th≥k = step {!!} (first-aft-correct a (≤′-step i≤k) (≰⇒> th≥k))
+  ...| no th≥k
+    with first-aft-correct a (≤′-step i≤k) (≰⇒> th≥k)
+  ...| ind = step (<⇒≢ (≤-trans (s≤s (∈AP-≤ ind)) (hop-< h))) ind
 
   lemma5'-hop
     : ∀{j j₁ k}(h : HopFrom j)
@@ -154,6 +162,16 @@ module AAOSL.Abstract.EvoCR
                 → m ∈AP (a₂ ⊕ a₁)
   ∈AP-⊕-intro-r hyp = {!!}
 
+  ∈AP-⊕-≤-r : ∀{j k i m}{a₂  : AdvPath j k}{a₁ : AdvPath k i}
+            → m ∈AP (a₂ ⊕ a₁)
+            → m ≤ k
+            → m ∈AP a₁
+  ∈AP-⊕-≤-r {a₂ = AdvDone} m∈a12 m≤k = m∈a12
+  ∈AP-⊕-≤-r {a₂ = AdvThere d h a₂} hereTgtThere m≤k = ⊥-elim (1+n≰n (≤-trans (≤-trans (s≤s (lemma1 a₂)) (hop-< h)) m≤k))
+  ∈AP-⊕-≤-r {a₂ = AdvThere d h a₂} (step x m∈a12) m≤k
+    = ∈AP-⊕-≤-r m∈a12 m≤k
+
+
   -- check Figure 4 (page 12) in: https://arxiv.org/pdf/cs/0302010.pdf
   --
   -- a₁ is dashed black line
@@ -171,22 +189,22 @@ module AAOSL.Abstract.EvoCR
           → ∀{s₁ s₂ tgt}{u₁ u₂ : View}
           → (m₁ : MembershipProof s₁ tgt)(m₂ : MembershipProof s₂ tgt)
           → s₁ ∈AP a₁ → s₂ ∈AP a₂
-          → tgt < s₁ → s₁ < s₂ -- wlog
+          → tgt ≢ 0 → tgt < s₁ → s₁ < s₂ -- wlog
           → i₁ ≤ tgt
           → i₂ ≤ tgt
           → rebuildMP m₁ u₁ s₁ ≡ rebuild a₁ t₁ s₁
           → rebuildMP m₂ u₂ s₂ ≡ rebuild a₂ t₂ s₂
           → HashBroke ⊎ (mbr-datum m₁ ≡ mbr-datum m₂)
   evo-cr' {t₁ = t₁} {t₂} a₁ a₂ hyp {s₁} {s₂} {tgt} {u₁} {u₂}
-      m₁ m₂ s₁∈a₁ s₂∈a₂ t<s₁ s₁<s₂ i₁≤t i₂≤t c₁ c₂
+      m₁ m₂ s₁∈a₁ s₂∈a₂ t≢0 t<s₁ s₁<s₂ i₁≤t i₂≤t c₁ c₂
     with ∈AP-cut a₁ s₁∈a₁ | ∈AP-cut a₂ s₂∈a₂
   ...| ((a₁₁ , a₁₂) , refl) | ((a₂₁ , a₂₂) , refl)
   -- The first part of the proof is find some points common to three
   -- of the provided proofs. This is given in Figure 4 of Maniatis and Baker,
   -- and they are called M and R too, to help make it at least a little clear.
   -- First we find a point that belongs in a₂, m₁ and a₁.
-    with lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) a₂₂ {!!}
-       | lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) (mbr-proof m₂) {!!}
+    with lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) a₂₂ (≤-trans i₂≤t (≤-unstep t<s₁))
+       | lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) (mbr-proof m₂) (<⇒≤ t<s₁)
        | last-bef-correct a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁))
   ...| M∈a₂₂ | M∈m₂ | M∈a₁₁
   -- Next, we find a point that belongs in m₁, m₂ and a₁.
@@ -212,7 +230,7 @@ module AAOSL.Abstract.EvoCR
   ...| ((m₂₁ , m₂₂) , refl)
     with AgreeOnCommon-∈ a₁ m₂₂ (∈AP-⊕-intro-l M∈a₁₁)
            (trans M-a1m2 (rebuild-⊕' m₂₁ m₂₂ ∈AP-src))
-           (∈AP-⊕-intro-r R∈a₁₂) {!!}
+           (∈AP-⊕-intro-r R∈a₁₂) (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁)))
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ R-a1m2
   -- Which finally lets us argue that m1 and m2 also agree on R. Similarly, if they agree
@@ -224,7 +242,8 @@ module AAOSL.Abstract.EvoCR
   ...| R-m1m2
     with ∈AP-cut (mbr-proof m₁) R∈m₁
   ...| ((m₁₁ , m₁₂) , refl)
-    with AgreeOnCommon-∈ m₂₂ m₁₂ {!m₂₂!} (trans R-m1m2 (rebuild-⊕ m₁₁ m₁₂)) ∈AP-tgt ∈AP-tgt
+    with AgreeOnCommon-∈ m₂₂ m₁₂ (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁)))
+           (trans R-m1m2 (rebuild-⊕ m₁₁ m₁₂)) ∈AP-tgt ∈AP-tgt
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ res
     with trans (rebuild-⊕' m₂₁ m₂₂ ∈AP-tgt) (trans res (sym (rebuild-⊕' m₁₁ m₁₂ ∈AP-tgt)))
@@ -233,57 +252,4 @@ module AAOSL.Abstract.EvoCR
                    | rebuild-tgt-lemma (mbr-proof m₂)
                        {u₂ ∪₁ (tgt , auth tgt (mbr-datum m₂) u₂) }
   ...| l1 | l2
-    rewrite ≟ℕ-refl tgt = auth-inj-1 {tgt} {mbr-datum m₁} {mbr-datum m₂} {!!} (trans (sym l1) (trans (sym half) l2))
-
-{-
-  -- Now, we can split a1 in M and m2 in M
-    with ∈AP-cut a₁ (∈AP-⊕-intro-l M∈a₁₁) | ∈AP-cut (mbr-proof m₂) M∈m₂
-  ...| ((x₁ , x₂) , prf) | ((m₂₁ , m₂₂) , refl)
-    with AgreeOnCommon x₂ m₂₂ (trans (trans (sym (rebuild-⊕' x₁ x₂ ∈AP-src)) (cong (λ P → rebuild P t₁ (last-bef a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁))))
-                                                    (sym prf))) (trans M-a1m2 (rebuild-⊕' m₂₁ m₂₂ ∈AP-src))) {!R∈a₁₂!} {!R∈m₂!}
-  ...| rrr = {!!}
--}
-{-
-
-    with ∈AP-cut (mbr-proof m₁) R∈m₁ | ∈AP-cut (mbr-proof m₂) R∈m₂ | ∈AP-cut a₁₂ R∈a₁₂
-  ...| ((m₁₁ , m₁₂) , refl) | ((m₂₁ , m₂₂) , refl) | ((x₁ , x₂) , prf)
-    with AgreeOnCommon x₂ m₁₂ {!M-a1m2!} ∈AP-src ∈AP-src
-  ...| sss = {!!}
--}
-{-
-
-    -- Now, we will cut m1 and m2 so we can apply AOC to them. Gladly, we know
-    -- we can cut them at R!
-        with AgreeOnCommon m₁₂ m₂₂ {!!} ∈AP-tgt ∈AP-tgt
-  ...| rrr = {!rrr!}
-
--}
-{-
--}
-
-
-
-{-
-    with lemma5
-
-  rebuild-⊕-cong
-    : ∀{j i₁ i₂}{t₁ t₂ : View}
-    → (a₁ : AdvPath j i₁)(a₂ : AdvPath j i₂)
-    → rebuild a₁ t₁ j ≡ rebuild a₂ t₂ j
-    → ∀{k}(aₖ : AdvPath k j)
-    → rebuild (aₖ ⊕ a₁) t₁ k ≡ rebuild (aₖ ⊕ a₂) t₂ k
-  rebuild-⊕-cong a₁ a₂ hyp aₖ
-    = {!!}
-
-
-  aux2 : ∀{s j i₁ i₂}{t₁ t₂}
-       → (a₁ : AdvPath s i₁)
-       → (a₂ : AdvPath s i₂)
-       → (k  : AdvPath j s)
-       → rebuild (k ⊕ a₁) t₁ s ≡ rebuild a₂ t₂ s
-       → rebuild (k ⊕ a₁) t₁ j ≡ rebuild (k ⊕ a₂) t₂ j
-  aux2 a₁ a₂ AdvDone hyp = hyp
-  aux2 {j = j} a₁ a₂ (AdvThere dk hk k) hyp
-    rewrite ≟ℕ-refl j = cong (auth j dk) {!aux2!}
-
--}
+    rewrite ≟ℕ-refl tgt = auth-inj-1 {tgt} {mbr-datum m₁} {mbr-datum m₂} t≢0 (trans (sym l1) (trans (sym half) l2))

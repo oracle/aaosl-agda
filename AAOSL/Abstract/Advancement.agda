@@ -255,6 +255,14 @@ module AAOSL.Abstract.Advancement
   ∈AP-≤ hereTgtThere = ≤-refl
   ∈AP-≤ (step _ hyp) = ≤-trans (∈AP-≤ hyp) (hop-≤ _)
 
+  ∈AP-≥ : ∀{j i}{a : AdvPath j i}
+        → {i0 : ℕ} → i0 ∈AP a
+        → i ≤ i0
+  ∈AP-≥ hereTgtDone = ≤-refl
+  ∈AP-≥ {a = a} hereTgtThere = lemma1 a
+  ∈AP-≥ (step _ hyp) = ∈AP-≥ hyp
+
+
   rebuild-⊕' : ∀{j k i}
              → {t : View}
              → (a₁ : AdvPath j k)
