@@ -638,6 +638,21 @@ module AAOSL.Abstract.Advancement
   ...|                        inj₁ hb = inj₁ hb
   ...|                        inj₂ xx1 = inj₂ (sym xx1)
 
+  AgreeOnCommon-∈ : ∀{j₁ j₂ i₁ i₂}
+                → {t₁ t₂ : View}
+                → (a₁ : AdvPath j₁ i₁)(a₂ : AdvPath j₂ i₂)
+                → j₂ ∈AP a₁
+                → rebuild a₁ t₁ j₂ ≡ rebuild a₂ t₂ j₂
+                → {i : ℕ} → i ∈AP a₁ → i ∈AP a₂
+                → HashBroke ⊎ rebuild a₁ t₁ i ≡ rebuild a₂ t₂ i
+  AgreeOnCommon-∈ a₁ a₂ j2∈a1 hyp ia1 ia2
+    with ∈AP-cut a₁ j2∈a1
+  ...| ((a₁₁ , a₁₂) , refl)
+    with AgreeOnCommon a₁₂ a₂ (trans (sym (rebuild-⊕' a₁₁ a₁₂ ∈AP-src)) hyp) (∈AP-⊕ ia1 ia2) ia2
+  ...| inj₁ hb = inj₁ hb
+  ...| inj₂ res = inj₂ (trans (rebuild-⊕' a₁₁ a₁₂ (∈AP-⊕ ia1 ia2)) res)
+
+
   -----------------------
   -- Membership Proofs --
   -----------------------
