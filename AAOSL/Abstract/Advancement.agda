@@ -320,7 +320,6 @@ module AAOSL.Abstract.Advancement
   rebuild-⊕ {k = k} {i = i} a₁ (AdvThere .{k} d h p) = rebuild-⊕' a₁ (AdvThere d h p) hereTgtThere
 
 
-
   ∈AP-⊕ : ∀{j i₁ k i₂ i}
         → {e  : AdvPath j k}{a₁ : AdvPath k i₁}
         → {a₂ : AdvPath k i₂}
@@ -660,9 +659,9 @@ module AAOSL.Abstract.Advancement
 
   -- Rebuilding it is the same as rebuilding an advancement proof, but we
   -- explicitely compute the authenticator at i.
-  rebuildMP : ∀{j i} → MembershipProof j i → View → Hash
+  rebuildMP : ∀{j i} → MembershipProof j i → View → View
   rebuildMP {j} {i} mbr t = rebuild (mbr-proof mbr)
-                                    (t ∪₁ (i , auth i (mbr-datum mbr) t)) j
+                                    (t ∪₁ (i , auth i (mbr-datum mbr) t))
 
   evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
          → (a₁ : AdvPath j i₁)
@@ -673,8 +672,8 @@ module AAOSL.Abstract.Advancement
          → s₁ ∈AP a₁ → s₂ ∈AP a₂
          → tgt ∈AP a₁ → tgt ∈AP a₂
          → tgt ≢ 0
-         → rebuildMP m₁ u₁ ≡ rebuild a₁ t₁ s₁
-         → rebuildMP m₂ u₂ ≡ rebuild a₂ t₂ s₂
+         → rebuildMP m₁ u₁ s₁ ≡ rebuild a₁ t₁ s₁
+         → rebuildMP m₂ u₂ s₂ ≡ rebuild a₂ t₂ s₂
          → HashBroke ⊎ (mbr-datum m₁ ≡ mbr-datum m₂)
   evo-cr {t₁ = t₁} {t₂} a₁ a₂ hyp {tgt = tgt} {u₁} {u₂} m₁ m₂ s₁∈a₁ s₂∈a₂ t∈a₁ t∈a₂ t≢0 c₁ c₂
      with AgreeOnCommon (mbr-proof m₁) (∈AP-cut₁ a₁ s₁∈a₁)

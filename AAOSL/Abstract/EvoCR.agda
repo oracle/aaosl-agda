@@ -109,7 +109,6 @@ module AAOSL.Abstract.EvoCR
   -- need aux lemma about first-aft a < tgt a
   ...| no th≥k = step {!!} (first-aft-correct a (≤′-step i≤k) (≰⇒> th≥k))
 
-
   lemma5'-hop
     : ∀{j j₁ k}(h : HopFrom j)
     → hop-tgt h < k → k < j → (b : AdvPath j₁ k) → j ≤ j₁ → j ∈AP b
@@ -143,9 +142,17 @@ module AAOSL.Abstract.EvoCR
   ...| yes th≤k = lemma5'-hop h (≤∧≢⇒< th≤k th≢k) k<j b j≤j₁
   ...| no th≥k = lemma5' a (≤′-step i≤k) (≰⇒> th≥k) b (≤-unstep (≤-trans (hop-< h) j≤j₁))
 
+  ∈AP-⊕-intro-l : ∀{j k i m}
+                → {a₂  : AdvPath j k}{a₁ : AdvPath k i}
+                → m ∈AP a₂
+                → m ∈AP (a₂ ⊕ a₁)
+  ∈AP-⊕-intro-l hyp = {!!}
 
-
-
+  ∈AP-⊕-intro-r : ∀{j k i m}
+                → {a₂  : AdvPath j k}{a₁ : AdvPath k i}
+                → m ∈AP a₁
+                → m ∈AP (a₂ ⊕ a₁)
+  ∈AP-⊕-intro-r hyp = {!!}
 
   evo-cr' : ∀{j i₁ i₂}{t₁ t₂ : View}
           → (a₁ : AdvPath j i₁)
@@ -157,19 +164,62 @@ module AAOSL.Abstract.EvoCR
           → tgt < s₁ → s₁ < s₂ -- wlog
           → i₁ ≤ tgt
           → i₂ ≤ tgt
-          → rebuildMP m₁ u₁ ≡ rebuild a₁ t₁ s₁
-          → rebuildMP m₂ u₂ ≡ rebuild a₂ t₂ s₂
+          → rebuildMP m₁ u₁ s₁ ≡ rebuild a₁ t₁ s₁
+          → rebuildMP m₂ u₂ s₂ ≡ rebuild a₂ t₂ s₂
           → HashBroke ⊎ (mbr-datum m₁ ≡ mbr-datum m₂)
   evo-cr' {t₁ = t₁} {t₂} a₁ a₂ hyp {s₁} {s₂} {tgt} {u₁} {u₂}
       m₁ m₂ s₁∈a₁ s₂∈a₂ t<s₁ s₁<s₂ i₁≤t i₂≤t c₁ c₂
     with ∈AP-cut a₁ s₁∈a₁ | ∈AP-cut a₂ s₂∈a₂
-  ...| ((a₁₁ , a₁₂) , refl) | ((a₂₂ , a₂₁) , refl)
+  ...| ((a₁₁ , a₁₂) , refl) | ((a₂₁ , a₂₂) , refl)
+  -- The first part of the proof is find some points common to three
+  -- of the provided proofs. This is given in Figure 4 of Maniatis and Baker,
+  -- and they are called M and R too, to help make it at least a little clear.
   -- First we find a point that belongs in a₂, m₁ and a₁.
-    with lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₂)) a₂₁ {!!}
-       | lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₂)) (mbr-proof m₂) {!!}
-       | last-bef-correct a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₂))
-  ...| M∈a₂₁ | M∈m₂ | M∈a₁₁ = {!!}
+    with lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) a₂₂ {!!}
+       | lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) (mbr-proof m₂) {!!}
+       | last-bef-correct a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁))
+  ...| M∈a₂₂ | M∈m₂ | M∈a₁₁
   -- Next, we find a point that belongs in m₁, m₂ and a₁.
+    with lemma5' a₁₂ (≤⇒≤′ i₁≤t) t<s₁ (mbr-proof m₁) ≤-refl
+       | lemma5' a₁₂ (≤⇒≤′ i₁≤t) t<s₁ (mbr-proof m₂) (<⇒≤ s₁<s₂)
+       | first-aft-correct a₁₂ (≤⇒≤′ i₁≤t) t<s₁
+  ...| R∈m₁ | R∈m₂ | R∈a₁₂
+  -- Now, since a₁ and a₂ rebuild to the same hash and M belongs
+  -- to both these proofs, the hash for M is the same.
+    with AgreeOnCommon a₁ a₂ hyp (∈AP-⊕-intro-l M∈a₁₁) (∈AP-⊕-intro-r M∈a₂₂)
+  ...| inj₁ hb = inj₁ hb
+  ...| inj₂ M-a1a2
+  -- Similarly, for a₂₂ and m₂
+    with AgreeOnCommon a₂₂ (mbr-proof m₂) (trans (sym (rebuild-⊕ a₂₁ a₂₂)) (sym c₂)) M∈a₂₂ M∈m₂
+  ...| inj₁ hb = inj₁ hb
+  ...| inj₂ M-a2m2
+  -- Which brings us to: rebuild a1 M == rebuild m2 M
+    with trans (trans M-a1a2 (rebuild-⊕' a₂₁ a₂₂ M∈a₂₂)) M-a2m2
+  ...| M-a1m2
+  -- Now, we can split a1 in M and m2 in M
+    with ∈AP-cut a₁ (∈AP-⊕-intro-l M∈a₁₁) | ∈AP-cut (mbr-proof m₂) M∈m₂
+  ...| ((x₁ , x₂) , prf) | ((m₂₁ , m₂₂) , refl)
+    with AgreeOnCommon x₂ m₂₂ (trans (trans (sym (rebuild-⊕' x₁ x₂ ∈AP-src)) (cong (λ P → rebuild P t₁ (last-bef a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁))))
+                                                    (sym prf))) (trans M-a1m2 (rebuild-⊕' m₂₁ m₂₂ ∈AP-src))) {!R∈a₁₂!} {!R∈m₂!}
+  ...| rrr = {!!}
+{-
+
+    with ∈AP-cut (mbr-proof m₁) R∈m₁ | ∈AP-cut (mbr-proof m₂) R∈m₂ | ∈AP-cut a₁₂ R∈a₁₂
+  ...| ((m₁₁ , m₁₂) , refl) | ((m₂₁ , m₂₂) , refl) | ((x₁ , x₂) , prf)
+    with AgreeOnCommon x₂ m₁₂ {!M-a1m2!} ∈AP-src ∈AP-src
+  ...| sss = {!!}
+-}
+{-
+
+    -- Now, we will cut m1 and m2 so we can apply AOC to them. Gladly, we know
+    -- we can cut them at R!
+        with AgreeOnCommon m₁₂ m₂₂ {!!} ∈AP-tgt ∈AP-tgt
+  ...| rrr = {!rrr!}
+
+-}
+{-
+-}
+
 
 
 {-
