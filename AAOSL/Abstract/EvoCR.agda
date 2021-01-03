@@ -154,6 +154,16 @@ module AAOSL.Abstract.EvoCR
                 → m ∈AP (a₂ ⊕ a₁)
   ∈AP-⊕-intro-r hyp = {!!}
 
+  -- check Figure 4 (page 12) in: https://arxiv.org/pdf/cs/0302010.pdf
+  --
+  -- a₁ is dashed black line
+  -- a₂ is dashed gray line
+  -- m₁ is thick black line
+  -- m₂ is thick gray line
+  -- s₁ is j
+  -- s₂ is k
+  -- j is n
+  -- tgt is i
   evo-cr' : ∀{j i₁ i₂}{t₁ t₂ : View}
           → (a₁ : AdvPath j i₁)
           → (a₂ : AdvPath j i₂)
@@ -196,12 +206,43 @@ module AAOSL.Abstract.EvoCR
   -- Which brings us to: rebuild a1 M == rebuild m2 M
     with trans (trans M-a1a2 (rebuild-⊕' a₂₁ a₂₂ M∈a₂₂)) M-a2m2
   ...| M-a1m2
+  -- Well, if a1 and m2 agree on one point, they agree on all points. In particular, they
+  -- agree on R!
+    with ∈AP-cut (mbr-proof m₂) M∈m₂
+  ...| ((m₂₁ , m₂₂) , refl)
+    with AgreeOnCommon-∈ a₁ m₂₂ (∈AP-⊕-intro-l M∈a₁₁)
+           (trans M-a1m2 (rebuild-⊕' m₂₁ m₂₂ ∈AP-src))
+           (∈AP-⊕-intro-r R∈a₁₂) {!!}
+  ...| inj₁ hb = inj₁ hb
+  ...| inj₂ R-a1m2
+  -- Which finally lets us argue that m1 and m2 also agree on R. Similarly, if they agree
+  -- on one point they agree on all points.
+    with AgreeOnCommon a₁₂ (mbr-proof m₁) (trans (sym (rebuild-⊕ a₁₁ a₁₂)) (sym c₁)) R∈a₁₂ R∈m₁
+  ...| inj₁ hb = inj₁ hb
+  ...| inj₂ R-a1m1
+    with trans (trans (sym R-a1m2) (rebuild-⊕' a₁₁ a₁₂ R∈a₁₂)) R-a1m1
+  ...| R-m1m2
+    with ∈AP-cut (mbr-proof m₁) R∈m₁
+  ...| ((m₁₁ , m₁₂) , refl)
+    with AgreeOnCommon-∈ m₂₂ m₁₂ {!m₂₂!} (trans R-m1m2 (rebuild-⊕ m₁₁ m₁₂)) ∈AP-tgt ∈AP-tgt
+  ...| inj₁ hb = inj₁ hb
+  ...| inj₂ res
+    with trans (rebuild-⊕' m₂₁ m₂₂ ∈AP-tgt) (trans res (sym (rebuild-⊕' m₁₁ m₁₂ ∈AP-tgt)))
+  ...| half with rebuild-tgt-lemma (mbr-proof m₁)
+                       {u₁ ∪₁ (tgt , auth tgt (mbr-datum m₁) u₁) }
+                   | rebuild-tgt-lemma (mbr-proof m₂)
+                       {u₂ ∪₁ (tgt , auth tgt (mbr-datum m₂) u₂) }
+  ...| l1 | l2
+    rewrite ≟ℕ-refl tgt = auth-inj-1 {tgt} {mbr-datum m₁} {mbr-datum m₂} {!!} (trans (sym l1) (trans (sym half) l2))
+
+{-
   -- Now, we can split a1 in M and m2 in M
     with ∈AP-cut a₁ (∈AP-⊕-intro-l M∈a₁₁) | ∈AP-cut (mbr-proof m₂) M∈m₂
   ...| ((x₁ , x₂) , prf) | ((m₂₁ , m₂₂) , refl)
     with AgreeOnCommon x₂ m₂₂ (trans (trans (sym (rebuild-⊕' x₁ x₂ ∈AP-src)) (cong (λ P → rebuild P t₁ (last-bef a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁))))
                                                     (sym prf))) (trans M-a1m2 (rebuild-⊕' m₂₁ m₂₂ ∈AP-src))) {!R∈a₁₂!} {!R∈m₂!}
   ...| rrr = {!!}
+-}
 {-
 
     with ∈AP-cut (mbr-proof m₁) R∈m₁ | ∈AP-cut (mbr-proof m₂) R∈m₂ | ∈AP-cut a₁₂ R∈a₁₂
