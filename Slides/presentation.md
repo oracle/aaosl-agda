@@ -10,10 +10,19 @@ header-includes: |
 
 \newcommand{\hash}{\mathrm{hash}}
 
+# What, Why and How?
+
+- Formalized Append-Only Skip Lists, originally from Baker and Maniatis ([arxiv pdf](http://arxiv.org/abs/cs/0302010)), in Agda:\pause
+  + Formalizing the datastructure itself\pause
+  + Formalizing the security properties from Baker and Maniatis\pause
+  + Proving these properties hold\pause
+- Uncovered interesting simplifications and made the security argument crystal clearer\pause
+- Gained confidence to use said datastructure in practice
+
 # Traditional Append-Only Structures: Blockchains
 
 - Only _lookup_ and _append_ operations\pause
-- Block $n+1$ depends on block $n$
+- Entry $n+1$ depends on hash of entry $n$
 \vfill
 \begin{tikzpicture}
 	\node (gen) {$\star$};
@@ -35,7 +44,7 @@ header-includes: |
 \vfill
 \pause
 - Prevent attacker rewriting history:
-  + We agree on $\hash\;e_{n+1}$ implies we agree on $\hash\;e_n$\pause
+  + agree on $\hash\;e_{n+1}$ implies agree on $\hash\;e_n$\pause
 
 - Works well with static membership and no garbage collection
 
@@ -256,6 +265,69 @@ rebuild adv7_12 my_h7
 \vfill
 
 # Membership Proofs
+
+Prove datum $d$ is in index $i$ for someone who trusts
+the digest $\hash\;e_j$ for $j \geq i$.\pause
+\vfill
+
+Consists in an advancement proof from $i$ to $j$ that
+includes the dependencies of $i$ and the data at $i$.
+\vfill
+
+Say we want to prove data at position 7 is $d7$:
+```haskell
+mem7_12 = ( d7 , adv7_12 `add_auth_to_map` [(6, h6)])
+```
+\vfill
+
+# Membership Proofs: Rebuilding a Root
+Say we want to prove data at position 7 is $d7$:
+```haskell
+mem7_12 = ( d7 , adv7_12 `add_auth_to_map` [(6, h6)])
+```
+\pause\vfill
+
+Since `h6` was already present, `adv7_12` does not change:
+```haskell
+mem7_12 = ( d7 , ( Hop d12 12 2 (Hop d8 8 0 Done)
+                 , M.fromList [ (i, digestFor log i)
+                              | i <- [0,4,6,10,11] ]))
+```
+\pause\vfill
+
+Rebuilding now takes an extra step:
+```haskell
+rebuild_mem mem7_12
+  = let r7  = auth 7  d7 [h6]
+        r8  = auth 8  d8 [r7, h6, h4, h0]
+        r12 = auth 12 d12 [h11,h10,r8]
+    in r12
+```
+
+# Evolutionary Collision Resistance
+
+
+\resizebox{\textwidth}{!}{\begin{tikzpicture}
+	\node (i1) {$i_1$};
+	\node [right = of i1] (i2) {$i_2$};
+	\node [right = 2cm of i2] (tgt) {$tgt$};
+	\node [right = 2cm of tgt] (s1) {$s_1$};
+	\node [right = of s1] (s2) {$s_2$};
+	\node [right = of s2] (j) {$j$};
+	\draw[<->, dashed] (j.north west) to[out=125, in=55]  node[midway, above] {$a_1$} (i1.north east);
+	\draw[<->, dashed] (j.south west) to[out=235, in=305] node[midway, below] {$a_2$} (i2.south east);
+	\pause
+	\draw[->] (j.north west) to[out=135, in=45] (s1.north east);
+	\draw[->] (j.south west) to[out=225, in=315] (s2.south east);
+	\draw[->] (s1.north west) to[out=135, in=45] (tgt.north east);
+	\draw[->] (s2.south west) to[out=225, in=315] (tgt.south east);
+	\draw[->] (tgt.north west) to[out=135, in=45] (i1.north east);
+	\draw[->] (tgt.south west) to[out=225, in=315] (i2.south east);
+\onslide<1->
+\end{tikzpicture}}
+
+
+
 
 # The Core Security Principle(s)
 
