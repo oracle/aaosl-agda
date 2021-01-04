@@ -801,6 +801,14 @@ module AAOSL.Abstract.Advancement where
    rebuildMP {j} {i} mbr t = rebuild (mbr-proof mbr)
                                      (t ∪₁ (i , auth i (mbr-datum mbr) t)) j
 
+   -- This is the proof of the Evolutionary Collision Resistance
+   -- property, as described in our CPP 2021 paper.  We have
+   -- subsequently realized that this property is less general
+   -- than the property intended (and described informally) by
+   -- Maniatis and Baker, due to the two superfluous hypotheses
+   -- annotated below.  We will soon be adding a proof for the
+   -- stronger version intended by Maniatis and Baker.
+
    evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
           → (a₁ : AdvPath j i₁)
           → (a₂ : AdvPath j i₂)
@@ -809,8 +817,7 @@ module AAOSL.Abstract.Advancement where
           → (m₁ : MembershipProof s₁ tgt)(m₂ : MembershipProof s₂ tgt)
           → s₁ ∈AP a₁ → s₂ ∈AP a₂
           → tgt ≢ 0
-          → tgt ∈AP a₁
-          → tgt ∈AP a₂
+          → tgt ∈AP a₁ → tgt ∈AP a₂  -- Superfluous hypotheses, making evo-cr weaker than intended
           → rebuildMP m₁ u₁ ≡ rebuild a₁ t₁ s₁
           → rebuildMP m₂ u₂ ≡ rebuild a₂ t₂ s₂
           → HashBroke ⊎ (mbr-datum m₁ ≡ mbr-datum m₂)
