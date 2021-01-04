@@ -807,6 +807,7 @@ module AAOSL.Abstract.Advancement where
    -- Maniatis and Baker, due to the two superfluous hypotheses
    -- annotated below.  We will soon be adding a proof for the
    -- stronger version intended by Maniatis and Baker.
+   -- See https://github.com/oracle/aaosl-agda/issues/2
 
    evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
           → (a₁ : AdvPath j i₁)
