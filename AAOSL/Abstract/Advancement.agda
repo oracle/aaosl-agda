@@ -775,7 +775,6 @@ module AAOSL.Abstract.Advancement where
    ...|                        inj₁ hb = inj₁ hb
    ...|                        inj₂ xx1 = inj₂ (sym xx1)
 
-
    -----------------------
    -- Membership Proofs --
    -----------------------
