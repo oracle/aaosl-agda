@@ -7,8 +7,10 @@ header-includes: |
   \usetikzlibrary{shapes}
   \usetikzlibrary{calc}
 ---
-
+\newcommand{\guydash}{-{\hskip-0.3em}-}
 \newcommand{\hash}{\mathrm{hash}}
+\newcommand{\rebuild}{\mathrm{rebuild}}
+\newcommand{\hoptgt}{\hbox{\it hop\guydash{}tgt}}
 
 # What, Why and How?
 
@@ -182,7 +184,7 @@ mkauth :: (Hashable a) => a -> Log a -> Auth a
 mkauth a log =
   let  j     = length log
        deps  = [ digest (log ! j - pow 2 l)
-		          | l <- [0 .. level j - 1] ]
+               | l <- [0 .. level j - 1] ]
   in Auth a (auth j (hash a) deps)
 ```
 \pause
@@ -304,35 +306,142 @@ rebuild_mem mem7_12
     in r12
 ```
 
-# Evolutionary Collision Resistance
+#
 
+\begin{center}
+\Huge
+\emph{Security Properties}
+\end{center}
 
-\resizebox{\textwidth}{!}{\begin{tikzpicture}
-	\node (i1) {$i_1$};
-	\node [right = of i1] (i2) {$i_2$};
-	\node [right = 2cm of i2] (tgt) {$tgt$};
-	\node [right = 2cm of tgt] (s1) {$s_1$};
-	\node [right = of s1] (s2) {$s_2$};
-	\node [right = of s2] (j) {$j$};
-	\draw[<->, dashed] (j.north west) to[out=125, in=55]  node[midway, above] {$a_1$} (i1.north east);
-	\draw[<->, dashed] (j.south west) to[out=235, in=305] node[midway, below] {$a_2$} (i2.south east);
+# Agree On Common
+
+\pause
+
+\begin{center}
+\resizebox{0.9\textwidth}{!}{\begin{tikzpicture}[
+  verA/.style = {color=blue!70!black},
+  verB/.style = {color=yellow!60!black}]
+	\node (j) {$j$};
+	\node (i1)  at ($ (j) - (8,-1) $) {$i_1$};
+	\node (i2)  at ($ (j) - (7, 1) $) {$i_2$};
+	\draw[->, verA] (j.north west) to[out=115, in=25] node[midway, above]{$a_1$} (i1);
+	\draw[->, verB] (j.south west) to[out=245, in=-25] node[midway, below]{$a_2$} (i2);
 	\pause
-	\draw[->] (j.north west) to[out=135, in=45] (s1.north east);
-	\draw[->] (j.south west) to[out=225, in=315] (s2.south east);
-	\draw[->] (s1.north west) to[out=135, in=45] (tgt.north east);
-	\draw[->] (s2.south west) to[out=225, in=315] (tgt.south east);
-	\draw[->] (tgt.north west) to[out=135, in=45] (i1.north east);
-	\draw[->] (tgt.south west) to[out=225, in=315] (i2.south east);
+	\node (s11) at ($ (i1) + (6,0) $)  {$s_1$};
+	\node (s12) at ($ (s11) - (0,2) $) {$s_1$};
+	\node (x) at ($ (i1) + (4.5,0) $) {$x$};
+	\node (s21) at ($ (i1) + (3,0) $) { $s_2$ };
+	\node (s22) at ($ (s21) - (0, 2) $) { $s_2$ };
+	\node (y) at ($ (i2) + (1,0) $) {$y$};
+	\draw[->, verA] (j.north west) to[out=135, in=0] (s11);
+	\draw[->, verA] (s11) -- (x) -- (s21) -- (i1);
+	\draw[->, verB] (j.south west) to[out=225, in=0] (s12);
+	\draw[->, verB] (s12) -- (s22) -- (y) -- (i2);
+	\pause
+	\node (eq1) at ($ (s11)!0.5!(s12) $) {$\equiv$};
+	\node (eq2) at ($ (s21)!0.5!(s22) $) {$\equiv$};
 \onslide<1->
 \end{tikzpicture}}
+\end{center}
+
+\onslide<1->{If $\rebuild\;a_1\;j \equiv \rebuild\;a_2\;j$}
+\onslide<4->{, then $\rebuild\;a_1\;s_1 \equiv \;rebuild\;a_2\;s_1$ and $\rebuild\;a_1\;s_2 \equiv \rebuild\;a_2\;s_2$ }
+
+# Evolutionary Collision Resistance
+
+\pause
+
+\begin{center}
+\resizebox{0.9\textwidth}{!}{\begin{tikzpicture}[
+  verA/.style = {color=blue!70!black},
+  verB/.style = {color=yellow!60!black}]
+	\node (j) {$j$};
+	\node (i1)  at ($ (j) - (8,-1) $) {$i_1$};
+	\node (i2)  at ($ (j) - (7, 1) $) {$i_2$};
+	\draw[->, verA] (j.north west) to[out=115, in=25] node[midway, above]{$a_1$} (i1);
+	\draw[->, verB] (j.south west) to[out=245, in=-25] node[midway, below]{$a_2$} (i2);
+	\pause
+	\node (s1) at ($ (i1) + (5,0) $) {$s_1$};
+	\node (s2) at ($ (i2) + (5,0) $) {$s_2$};
+	\draw[->, verA] (j.north west) to[out=135, in=0] (s1);
+	\draw[->, verA] (s1) -- (i1);
+	\draw[->, verB] (j.south west) to[out=225, in=0] (s2);
+	\draw[->, verB] (s2) -- (i2);
+	\pause
+	\node (tgt) at ($ (j) - (5, 0) $) {$tgt$};
+	\draw[->, dashed, thick, verA] (tgt.north east) to[out=45, in=195] node[midway, below]{$m_1$} (s1);
+	\draw[->, dashed, thick, verB] (tgt.south east) to[out=-45, in=165] node[midway, above]{$m_2$} (s2);
+\onslide<1->
+\end{tikzpicture}}
+\end{center}
+
+\onslide<2->{If $\rebuild\;a_1\;j \equiv \rebuild\;a_2\;j$}
+\onslide<4->{and $\rebuild\;m_i\;s_i \equiv \rebuild\;a_i\;s_i$, then}
+\onslide<5->{$m_1$ and $m_2$ authenticate the same data.}
 
 
+# Semi-Evolutionary Collision Resistance
 
+Interpretation mistake: our paper proved something \emph{less} general:
 
-# The Core Security Principle(s)
+\pause
 
-# The Knapking Security Proof
+\begin{center}
+\resizebox{0.8\textwidth}{!}{\begin{tikzpicture}[
+  verA/.style = {color=blue!70!black},
+  verB/.style = {color=yellow!60!black}]
+	\node (j) {$j$};
+	\node (i1)  at ($ (j) - (8,-1) $) {$i_1$};
+	\node (i2)  at ($ (j) - (7, 1) $) {$i_2$};
+	\draw[->, verA] (j.north west) to[out=115, in=25] node[midway, above]{$a_1$} (i1);
+	\draw[->, verB] (j.south west) to[out=245, in=-25] node[midway, below]{$a_2$} (i2);
+	\node (s1) at ($ (i1) + (5,0) $) {$s_1$};
+	\node (s2) at ($ (i2) + (5,0) $) {$s_2$};
+	\node (tgt1) at ($ (j) - (5, -1) $) {$tgt$};
+	\node (tgt2) at ($ (j) - (5, 1) $) {$tgt$};
+	\draw[->, verA] (j.north west) to[out=135, in=0] (s1);
+	\draw[->, verA] (s1) -- (tgt1) -- (i1);
+	\draw[->, verB] (j.south west) to[out=225, in=0] (s2);
+	\draw[->, verB] (s2) -- (tgt2) -- (i2);
+	\draw[->, dashed, thick, verA] (tgt1.south east) to[out=-45, in=200] (s1);
+	\draw[->, dashed, thick, verB] (tgt2.north east) to[out=45, in=160] (s2);
+\onslide<1->
+\end{tikzpicture}}
+\end{center}
 
-# AAOSL In Agda
+\pause
+
+Already fixed! Same \textsc{evo-cr} as original authors available
+at [`github.com/oracle/aaosl-agda`](https://github.com/oracle/aaosl-agda)
+
+# Core Security Principle: Hops Never Cross
+
+\begin{center}
+\resizebox{\textwidth}{!}{
+\begin{tikzpicture}
+  \node                      (h1) {$h_1$};
+  \node [above = of h1]      (h2) {$h_2$};
+  \node [below left = of h1] (tgt1) {$\hoptgt\;h_1$};
+  \node [left = of tgt1]     (tgt2) {$\hoptgt\;h_2$};
+  \node [below right = of h1] (j1p) {};
+  \node [right = of j1p]       (j2) {$j_2$};
+
+  \node (form)  at ($ (tgt2)!0.5!(tgt1) $) {$<$};
+  \node (form3) at ($ (tgt1)!0.5!(j1p) $) {$<$};
+  \draw [line width=0.25mm, ->] (j2) |- (h2.south) -| (tgt2);
+  \draw [line width=0.25mm, ->] (h1.south) -| (tgt1);
+  \pause
+  \node (j1) at (j1p) {$j_1$};
+  \node (form2) at ($ (j1)!0.5!(j2)     $) {$\leq$};
+  \draw [line width=0.25mm] (j1) |- (h1.south);
+\onslide<1->
+\end{tikzpicture}}
+\end{center}
+
+\pause
+
+If $\hoptgt\;h_2 < \hoptgt\;h_1$ and $hoptgt\;h_1 < j_2$, then $j_1 \leq j_2$.
+
+# Working Modulo Hash Collisions
 
 # Future Work and Conclusions
