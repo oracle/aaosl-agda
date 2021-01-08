@@ -19,7 +19,7 @@ open import Data.Maybe renaming (map to Maybe-map)
 open import Function
 
 open import Relation.Binary.PropositionalEquality
-open import Relation.Binary.Core
+open import Relation.Binary.Definitions
 open import Relation.Nullary
 
 open import AAOSL.Lemmas
@@ -46,6 +46,7 @@ module AAOSL.Abstract.EvoCR
   -- Returns the last element on path a that is smaller than k
   last-bef : ∀{j i k}(a : AdvPath j i)(i<k : i < k)(k≤j : k ≤′ j) → ℕ
   last-bef {j} a i<k ≤′-refl = j
+  -- TODO-1 : The same or similar proof is repeated numerous times below; refactor for clarity
   last-bef AdvDone i<k (≤′-step k≤j) = ⊥-elim (1+n≰n (≤-unstep (≤-trans i<k (≤′⇒≤ k≤j))))
   last-bef {k = k} (AdvThere d h a) i<k (≤′-step k≤j)
     with hop-tgt h ≤?ℕ k
@@ -94,7 +95,7 @@ module AAOSL.Abstract.EvoCR
   -- returns the first element on path a that is greather than k
   first-aft : ∀{j i k}(a : AdvPath j i)(i≤k : i ≤′ k)(k<j : k < j) → ℕ
   first-aft {i = i} a ≤′-refl k<j = i
-  first-aft AdvDone (≤′-step i≤k) k<j = {!!} -- imp
+  first-aft AdvDone (≤′-step i≤k) k<j = ⊥-elim (1+n≰n (≤-unstep (≤-trans k<j (≤′⇒≤ i≤k))))
   first-aft {j} {i} {k} (AdvThere d h a) (≤′-step i≤k) k<j
     with hop-tgt h ≟ℕ k
   ...| yes _ = k
@@ -106,7 +107,7 @@ module AAOSL.Abstract.EvoCR
   first-aft-correct : ∀{j i k}(a : AdvPath j i)(i≤k : i ≤′ k)(k<j : k < j)
                     → first-aft a i≤k k<j ∈AP a
   first-aft-correct a ≤′-refl k<j = ∈AP-tgt
-  first-aft-correct AdvDone (≤′-step i≤k) k<j = {!!} -- imp
+  first-aft-correct AdvDone (≤′-step i≤k) k<j = ⊥-elim (1+n≰n (≤-unstep (≤-trans k<j (≤′⇒≤ i≤k))))
   first-aft-correct {j} {i} {k} (AdvThere d h a) (≤′-step i≤k) k<j
     with hop-tgt h ≟ℕ k
   ...| yes th≡k rewrite sym th≡k = step (<⇒≢ k<j) ∈AP-src
@@ -125,7 +126,7 @@ module AAOSL.Abstract.EvoCR
   ...| yes refl = ∈AP-src
   ...| no j≢j₁
     with b
-  ...| AdvDone = {!!} -- imp
+  ...| AdvDone = ⊥-elim (1+n≰n (≤-trans k≤j j≤j₁))
   ...| (AdvThere x hb b')
     with hop-tgt hb ≟ℕ j
   ...| yes refl = step (<⇒≢ (hop-< hb)) ∈AP-src
@@ -141,7 +142,7 @@ module AAOSL.Abstract.EvoCR
           → ∀{j₁}(b : AdvPath j₁ k) → j ≤ j₁
           → first-aft a i≤k k<j ∈AP b
   lemma5' a ≤′-refl k<j b j≤j₁ = ∈AP-tgt
-  lemma5' AdvDone (≤′-step i≤k) k<j b j≤j₁ = {!!} -- imp
+  lemma5' AdvDone (≤′-step i≤k) k<j b j≤j₁ = ⊥-elim (1+n≰n (≤-unstep (≤-trans k<j (≤′⇒≤ i≤k))))
   lemma5' {j} {i} {k} (AdvThere d h a) (≤′-step i≤k) k<j b j≤j₁
     with hop-tgt h ≟ℕ k
   ...| yes _ = ∈AP-tgt
@@ -154,13 +155,19 @@ module AAOSL.Abstract.EvoCR
                 → {a₂  : AdvPath j k}{a₁ : AdvPath k i}
                 → m ∈AP a₂
                 → m ∈AP (a₂ ⊕ a₁)
-  ∈AP-⊕-intro-l hyp = {!!}
+  ∈AP-⊕-intro-l hereTgtThere = hereTgtThere
+  ∈AP-⊕-intro-l (step prog m∈a) = step prog (∈AP-⊕-intro-l m∈a)
+  ∈AP-⊕-intro-l {a₁ = AdvDone} hereTgtDone = hereTgtDone
+  ∈AP-⊕-intro-l {a₁ = AdvThere d h a} hereTgtDone = hereTgtThere
 
   ∈AP-⊕-intro-r : ∀{j k i m}
                 → {a₂  : AdvPath j k}{a₁ : AdvPath k i}
                 → m ∈AP a₁
                 → m ∈AP (a₂ ⊕ a₁)
-  ∈AP-⊕-intro-r hyp = {!!}
+  ∈AP-⊕-intro-r {a₂ = AdvDone} hyp = hyp
+  ∈AP-⊕-intro-r {k = k} {a₂ = AdvThere d h a} hyp =
+      step (<⇒≢ (≤-trans (s≤s (∈AP-≤ hyp)) (≤-trans (s≤s (lemma1 a)) (hop-< h))))
+           (∈AP-⊕-intro-r {a₂ = a} hyp)
 
   ∈AP-⊕-≤-r : ∀{j k i m}{a₂  : AdvPath j k}{a₁ : AdvPath k i}
             → m ∈AP (a₂ ⊕ a₁)
@@ -171,6 +178,41 @@ module AAOSL.Abstract.EvoCR
   ∈AP-⊕-≤-r {a₂ = AdvThere d h a₂} (step x m∈a12) m≤k
     = ∈AP-⊕-≤-r m∈a12 m≤k
 
+  findM : ∀ {j i₂ s₁ s₂ tgt}
+          → (a₁₁ : AdvPath j s₁)
+          → (a₂₁ : AdvPath j s₂)
+          → (a₂₂ : AdvPath s₂ i₂)
+          → (m₂ : MembershipProof s₂ tgt)
+          → i₂ ≤ s₁
+          → tgt ≤ s₁
+          → s₁ ≤ s₂
+          → ∃[ M ] (M ∈AP a₂₂ × M ∈AP mbr-proof m₂ × M ∈AP a₁₁)
+  findM {s₁ = s₁} {s₂} a₁₁ a₂₁ a₂₂ m₂ i₂≤s₁ t≤s₁ s₁≤s₂
+     with <-cmp s₁ s₂
+  ...| tri> _ _ s₂<s₁ = ⊥-elim (<⇒≢ s₂<s₁ (sym (≤-antisym s₁≤s₂ (≤-unstep s₂<s₁))))
+  ...| tri≈ _ refl _  = s₁ , ∈AP-src , ∈AP-src , ∈AP-tgt
+  ...| tri< s₁<s₂ _ _ = last-bef a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁))
+                      , lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) a₂₂ i₂≤s₁
+                      , lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) (mbr-proof m₂) t≤s₁
+                      , last-bef-correct a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁))
+
+  findR : ∀{j i₁ s₁ s₂ tgt}
+          → (a₁₁ : AdvPath j s₁)
+          → (a₁₂ : AdvPath s₁ i₁)
+          → (a₂₁ : AdvPath j s₂)
+          → (m₁ : MembershipProof s₁ tgt)(m₂ : MembershipProof s₂ tgt)
+          → i₁ ≤ tgt
+          → tgt ≤ s₁
+          → s₁ ≤ s₂ -- wlog
+          → ∃[ R ] (R ∈AP mbr-proof m₁ × R ∈AP mbr-proof m₂ × R ∈AP a₁₂)
+  findR {s₁ = s₁} {tgt = tgt} a₁₁ a₁₂ a₂₁ m₁ m₂ i₁≤t t≤s₁ s₁≤s₂
+    with <-cmp tgt s₁
+  ...| tri> _ _ s₁<t = ⊥-elim (<⇒≢ s₁<t (sym (≤-antisym t≤s₁ (≤-unstep s₁<t))))
+  ...| tri≈ _ refl _ = s₁ , ∈AP-src , ∈AP-tgt , ∈AP-src
+  ...| tri< t<s₁ _ _ = first-aft a₁₂ (≤⇒≤′ i₁≤t) t<s₁
+                       , lemma5' a₁₂ (≤⇒≤′ i₁≤t) t<s₁ (mbr-proof m₁) ≤-refl
+                       , lemma5' a₁₂ (≤⇒≤′ i₁≤t) t<s₁ (mbr-proof m₂) s₁≤s₂
+                       , first-aft-correct a₁₂ (≤⇒≤′ i₁≤t) t<s₁
 
   -- check Figure 4 (page 12) in: https://arxiv.org/pdf/cs/0302010.pdf
   --
@@ -182,43 +224,39 @@ module AAOSL.Abstract.EvoCR
   -- s₂ is k
   -- j is n
   -- tgt is i
-  evo-cr' : ∀{j i₁ i₂}{t₁ t₂ : View}
+  evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
           → (a₁ : AdvPath j i₁)
           → (a₂ : AdvPath j i₂)
           → rebuild a₁ t₁ j ≡ rebuild a₂ t₂ j
           → ∀{s₁ s₂ tgt}{u₁ u₂ : View}
           → (m₁ : MembershipProof s₁ tgt)(m₂ : MembershipProof s₂ tgt)
           → s₁ ∈AP a₁ → s₂ ∈AP a₂
-          → tgt ≢ 0 → tgt < s₁ → s₁ < s₂ -- wlog
+          → tgt ≢ 0 → tgt ≤ s₁ → s₁ ≤ s₂ -- wlog
           → i₁ ≤ tgt
           → i₂ ≤ tgt
           → rebuildMP m₁ u₁ s₁ ≡ rebuild a₁ t₁ s₁
           → rebuildMP m₂ u₂ s₂ ≡ rebuild a₂ t₂ s₂
           → HashBroke ⊎ (mbr-datum m₁ ≡ mbr-datum m₂)
-  evo-cr' {t₁ = t₁} {t₂} a₁ a₂ hyp {s₁} {s₂} {tgt} {u₁} {u₂}
-      m₁ m₂ s₁∈a₁ s₂∈a₂ t≢0 t<s₁ s₁<s₂ i₁≤t i₂≤t c₁ c₂
+  evo-cr {t₁ = t₁} {t₂} a₁ a₂ hyp {s₁} {s₂} {tgt} {u₁} {u₂}
+      m₁ m₂ s₁∈a₁ s₂∈a₂ t≢0 t≤s₁ s₁≤s₂ i₁≤t i₂≤t c₁ c₂
     with ∈AP-cut a₁ s₁∈a₁ | ∈AP-cut a₂ s₂∈a₂
   ...| ((a₁₁ , a₁₂) , refl) | ((a₂₁ , a₂₂) , refl)
   -- The first part of the proof is find some points common to three
   -- of the provided proofs. This is given in Figure 4 of Maniatis and Baker,
   -- and they are called M and R too, to help make it at least a little clear.
   -- First we find a point that belongs in a₂, m₁ and a₁.
-    with lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) a₂₂ (≤-trans i₂≤t (≤-unstep t<s₁))
-       | lemma5 a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁)) (mbr-proof m₂) (<⇒≤ t<s₁)
-       | last-bef-correct a₁₁ s₁<s₂ (≤⇒≤′ (lemma1 a₂₁))
-  ...| M∈a₂₂ | M∈m₂ | M∈a₁₁
+    with findM a₁₁ a₂₁ a₂₂ m₂ (≤-trans i₂≤t t≤s₁) t≤s₁ s₁≤s₂
+  ...| M , M∈a₂₂ , M∈m₂ , M∈a₁₁
   -- Next, we find a point that belongs in m₁, m₂ and a₁.
-    with lemma5' a₁₂ (≤⇒≤′ i₁≤t) t<s₁ (mbr-proof m₁) ≤-refl
-       | lemma5' a₁₂ (≤⇒≤′ i₁≤t) t<s₁ (mbr-proof m₂) (<⇒≤ s₁<s₂)
-       | first-aft-correct a₁₂ (≤⇒≤′ i₁≤t) t<s₁
-  ...| R∈m₁ | R∈m₂ | R∈a₁₂
+    with findR a₁₁ a₁₂ a₂₁ m₁ m₂ i₁≤t t≤s₁ s₁≤s₂
+  ...| R , R∈m₁ , R∈m₂ , R∈a₁₂
   -- Now, since a₁ and a₂ rebuild to the same hash and M belongs
   -- to both these proofs, the hash for M is the same.
     with AgreeOnCommon a₁ a₂ hyp (∈AP-⊕-intro-l M∈a₁₁) (∈AP-⊕-intro-r M∈a₂₂)
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ M-a1a2
   -- Similarly, for a₂₂ and m₂
-    with AgreeOnCommon a₂₂ (mbr-proof m₂) (trans (sym (rebuild-⊕ a₂₁ a₂₂)) (sym c₂)) M∈a₂₂ M∈m₂
+    with AgreeOnCommon a₂₂ (mbr-proof m₂) (trans (sym (rebuild-⊕' a₂₁ a₂₂ ∈AP-src)) (sym c₂)) M∈a₂₂ M∈m₂
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ M-a2m2
   -- Which brings us to: rebuild a1 M == rebuild m2 M
@@ -235,7 +273,7 @@ module AAOSL.Abstract.EvoCR
   ...| inj₂ R-a1m2
   -- Which finally lets us argue that m1 and m2 also agree on R. Similarly, if they agree
   -- on one point they agree on all points.
-    with AgreeOnCommon a₁₂ (mbr-proof m₁) (trans (sym (rebuild-⊕ a₁₁ a₁₂)) (sym c₁)) R∈a₁₂ R∈m₁
+    with AgreeOnCommon a₁₂ (mbr-proof m₁) (trans (sym (rebuild-⊕' a₁₁ a₁₂ ∈AP-src)) (sym c₁)) R∈a₁₂ R∈m₁
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ R-a1m1
     with trans (trans (sym R-a1m2) (rebuild-⊕' a₁₁ a₁₂ R∈a₁₂)) R-a1m1
@@ -243,7 +281,7 @@ module AAOSL.Abstract.EvoCR
     with ∈AP-cut (mbr-proof m₁) R∈m₁
   ...| ((m₁₁ , m₁₂) , refl)
     with AgreeOnCommon-∈ m₂₂ m₁₂ (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁)))
-           (trans R-m1m2 (rebuild-⊕ m₁₁ m₁₂)) ∈AP-tgt ∈AP-tgt
+           (trans R-m1m2 (rebuild-⊕' m₁₁ m₁₂ ∈AP-src)) ∈AP-tgt ∈AP-tgt
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ res
     with trans (rebuild-⊕' m₂₁ m₂₂ ∈AP-tgt) (trans res (sym (rebuild-⊕' m₁₁ m₁₂ ∈AP-tgt)))

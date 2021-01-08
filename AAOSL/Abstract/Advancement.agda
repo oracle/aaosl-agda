@@ -686,7 +686,7 @@ module AAOSL.Abstract.Advancement
   rebuildMP {j} {i} mbr t = rebuild (mbr-proof mbr)
                                     (t ∪₁ (i , auth i (mbr-datum mbr) t))
 
-  evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
+  semi-evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
          → (a₁ : AdvPath j i₁)
          → (a₂ : AdvPath j i₂)
          → rebuild a₁ t₁ j ≡ rebuild a₂ t₂ j
@@ -698,7 +698,7 @@ module AAOSL.Abstract.Advancement
          → rebuildMP m₁ u₁ s₁ ≡ rebuild a₁ t₁ s₁
          → rebuildMP m₂ u₂ s₂ ≡ rebuild a₂ t₂ s₂
          → HashBroke ⊎ (mbr-datum m₁ ≡ mbr-datum m₂)
-  evo-cr {t₁ = t₁} {t₂} a₁ a₂ hyp {tgt = tgt} {u₁} {u₂} m₁ m₂ s₁∈a₁ s₂∈a₂ t∈a₁ t∈a₂ t≢0 c₁ c₂
+  semi-evo-cr {t₁ = t₁} {t₂} a₁ a₂ hyp {tgt = tgt} {u₁} {u₂} m₁ m₂ s₁∈a₁ s₂∈a₂ t∈a₁ t∈a₂ t≢0 c₁ c₂
      with AgreeOnCommon (mbr-proof m₁) (∈AP-cut₁ a₁ s₁∈a₁)
                        (trans c₁ (∈AP-cut₁-rebuild a₁ s₁∈a₁ ∈AP-src {t₁}))
                        ∈AP-tgt (∈AP-∈-cut a₁ s₁∈a₁ t∈a₁ (lemma1 (mbr-proof m₁)))
