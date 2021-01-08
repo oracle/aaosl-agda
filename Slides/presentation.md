@@ -6,6 +6,9 @@ header-includes: |
   \usetikzlibrary{positioning}
   \usetikzlibrary{shapes}
   \usetikzlibrary{calc}
+  \setbeamertemplate{itemize items}{>>}
+  \setbeamertemplate{itemize subitem}{-}
+monofont: DejaVuSansMono.ttf
 ---
 \newcommand{\guydash}{-{\hskip-0.3em}-}
 \newcommand{\hash}{\mathrm{hash}}
@@ -14,12 +17,14 @@ header-includes: |
 
 # What, Why and How?
 
-- Formalized Append-Only Skip Lists, originally from Baker and Maniatis ([arxiv pdf](http://arxiv.org/abs/cs/0302010)), in Agda:\pause
-  + Formalizing the datastructure itself\pause
-  + Formalizing the security properties from Baker and Maniatis\pause
-  + Proving these properties hold\pause
-- Uncovered interesting simplifications and made the security argument crystal clearer\pause
-- Gained confidence to use said datastructure in practice
+Formalized Authenticated Append-Only Skip Lists, originally from Maniatis and Baker ([arxiv pdf](http://arxiv.org/abs/cs/0302010))\footnote{`arxiv.org/abs/cs/0302010`}, in Agda:\pause
+
+- Formalized a generalization of the original datastructure,\pause
+- Formalized the security properties from Maniatis and Baker,\pause
+- Proved the proposed generalization satisfies the security properties,\pause
+- Proved Maniatis and Baker's AAOSL is an instance of our generalization.\pause
+
+Uncovered interesting simplifications and made the security argument clearer\pause
 
 # Traditional Append-Only Structures: Blockchains
 
@@ -125,9 +130,9 @@ After a few rounds of dynamic participation no participant might contain all ent
 
 \vfill
 
-# Append-Only Authenticated Skip Lists (AAOSL)
+# Authenticated Append-Only Skip Lists (AAOSL)
 
-- Originally from Baker and Maniatis ([arxiv pdf](http://arxiv.org/abs/cs/0302010))
+- Originally from Maniatis and Maniatis ([arxiv pdf](http://arxiv.org/abs/cs/0302010))
 - Make $\hash\;e_n$ depend on more than one entry.\pause
   + Let $n = 2^l \times d$, for an odd $d$, $\hash\;e_d$ will depend
   on $e_i$, $i \in \{ e_{2^l \times d - 2^k} \mid k \leq l \}$.\pause
@@ -199,7 +204,7 @@ auth j datumDig lvlDigs =
 - Proves to a verifier that log advanced from $i$
 to $j \geq i$\pause
 
-- Example: an $AdvProof$ from 7 to 12
+- Example: an advancement proof from 7 to 12
   + enables to construct $\hash\;e_{12}$ given $\hash\;e_{7}$ \pause
 
 \resizebox{\textwidth}{!}{\begin{tikzpicture}
@@ -238,7 +243,7 @@ to $j \geq i$\pause
 
 \pause
 ```haskell
-adv7_12 = ( Hop d12 12 2 (Hop d8 8 0 Done)
+adv7_12 ~ ( Hop d12 12 2 (Hop d8 8 0 Done)
           , M.fromList [ (i, digestFor log i)
                        | i <- [0,4,6,10,11] ])
 ```
@@ -252,7 +257,7 @@ rebuild :: AdvProof -> Digest -> Digest
 \vfill
 
 ```haskell
-adv7_12 = ( Hop d12 12 2 (Hop d8 8 0 Done)
+adv7_12 ~ ( Hop d12 12 2 (Hop d8 8 0 Done)
           , M.fromList [ (i, digestFor log i)
                        | i <- [0,4,6,10,11] ])
 ```
@@ -260,7 +265,7 @@ adv7_12 = ( Hop d12 12 2 (Hop d8 8 0 Done)
 \vfill
 ```haskell
 rebuild adv7_12 my_h7
-  = let r8  = auth 8  d8 [my_h7, h6, h4, h0]
+  = let r8  = auth 8  d8  [my_h7, h6, h4, h0]
         r12 = auth 12 d12 [h11,h10,r8]
     in r12
 ```
@@ -272,26 +277,26 @@ Prove datum $d$ is in index $i$ for someone who trusts
 the digest $\hash\;e_j$ for $j \geq i$.\pause
 \vfill
 
-Consists in an advancement proof from $i$ to $j$ that
-includes the dependencies of $i$ and the data at $i$.
+Consists of an advancement proof from $i$ to $j$,
+the dependencies of $i$ and the data at $i$.
 \vfill
 
 Say we want to prove data at position 7 is $d7$:
 ```haskell
-mem7_12 = ( d7 , adv7_12 `add_auth_to_map` [(6, h6)])
+mem7_12 ~ ( d7 , adv7_12 `add_auth_to_map` [(6, h6)])
 ```
 \vfill
 
 # Membership Proofs: Rebuilding a Root
 Say we want to prove data at position 7 is $d7$:
 ```haskell
-mem7_12 = ( d7 , adv7_12 `add_auth_to_map` [(6, h6)])
+mem7_12 ~ ( d7 , adv7_12 `add_auth_to_map` [(6, h6)])
 ```
 \pause\vfill
 
 Since `h6` was already present, `adv7_12` does not change:
 ```haskell
-mem7_12 = ( d7 , ( Hop d12 12 2 (Hop d8 8 0 Done)
+mem7_12 ~ ( d7 , ( Hop d12 12 2 (Hop d8 8 0 Done)
                  , M.fromList [ (i, digestFor log i)
                               | i <- [0,4,6,10,11] ]))
 ```
@@ -310,7 +315,7 @@ rebuild_mem mem7_12
 
 \begin{center}
 \Huge
-\emph{Security Properties}
+\color{blue!65!black}{Security Properties}
 \end{center}
 
 # Agree On Common
@@ -323,20 +328,26 @@ rebuild_mem mem7_12
   verB/.style = {color=yellow!60!black}]
 	\node (j) {$j$};
 	\node (i1)  at ($ (j) - (8,-1) $) {$i_1$};
-	\node (i2)  at ($ (j) - (7, 1) $) {$i_2$};
-	\draw[->, verA] (j.north west) to[out=115, in=25] node[midway, above]{$a_1$} (i1);
-	\draw[->, verB] (j.south west) to[out=245, in=-25] node[midway, below]{$a_2$} (i2);
+	\node (i2)  at ($ (j) - (9, 1) $) {$i_2$};
+	\onslide<2>{ \draw[->, verA] (j.north west) to[out=105, in=25] node[midway, above]{$a_1$} (i1);
+                 \draw[->, verB] (j.south west) to[out=255, in=-25] node[midway, below]{$a_2$} (i2); }
 	\pause
+	\onslide<3->{ \draw[->, verA] (j.north west) to[out=105, in=25] node[midway, above]{$a_1 = a_{11} \oplus \cdots \oplus a_{14} $} (i1);
+                  \draw[->, verB] (j.south west) to[out=255, in=-25] node[midway, below]{$a_2 = a_{21} \oplus \cdots \oplus a_{24} $} (i2); }
 	\node (s11) at ($ (i1) + (6,0) $)  {$s_1$};
 	\node (s12) at ($ (s11) - (0,2) $) {$s_1$};
 	\node (x) at ($ (i1) + (4.5,0) $) {$x$};
 	\node (s21) at ($ (i1) + (3,0) $) { $s_2$ };
 	\node (s22) at ($ (s21) - (0, 2) $) { $s_2$ };
-	\node (y) at ($ (i2) + (1,0) $) {$y$};
-	\draw[->, verA] (j.north west) to[out=135, in=0] (s11);
-	\draw[->, verA] (s11) -- (x) -- (s21) -- (i1);
-	\draw[->, verB] (j.south west) to[out=225, in=0] (s12);
-	\draw[->, verB] (s12) -- (s22) -- (y) -- (i2);
+	\node (y) at ($ (i2) + (3,0) $) {$y$};
+	\draw[->, verA] (j.north west) to[out=135, in=0] node[near end, above]{$a_{14}$} (s11);
+	\draw[->, verA] (s11) -- node[midway, above]{$a_{13}$} (x)
+	                      -- node[midway, above]{$a_{12}$} (s21)
+						  -- node[midway, above]{$a_{11}$} (i1);
+	\draw[->, verB] (j.south west) to[out=225, in=0] node[near end, below]{$a_{24}$} (s12);
+	\draw[->, verB] (s12) -- node[midway, below]{$a_{23}$} (s22)
+		                  -- node[midway, below]{$a_{22}$} (y)
+						  -- node[midway, below]{$a_{21}$} (i2);
 	\pause
 	\node (eq1) at ($ (s11)!0.5!(s12) $) {$\equiv$};
 	\node (eq2) at ($ (s21)!0.5!(s22) $) {$\equiv$};
@@ -357,18 +368,20 @@ rebuild_mem mem7_12
   verB/.style = {color=yellow!60!black}]
 	\node (j) {$j$};
 	\node (i1)  at ($ (j) - (8,-1) $) {$i_1$};
-	\node (i2)  at ($ (j) - (7, 1) $) {$i_2$};
-	\draw[->, verA] (j.north west) to[out=115, in=25] node[midway, above]{$a_1$} (i1);
-	\draw[->, verB] (j.south west) to[out=245, in=-25] node[midway, below]{$a_2$} (i2);
+	\node (i2)  at ($ (j) - (9, 1) $) {$i_2$};
+	\onslide<2> { \draw[->, verA] (j.north west) to[out=105, in=25] node[midway, above]{$a_1$} (i1);
+                  \draw[->, verB] (j.south west) to[out=255, in=-25] node[midway, below]{$a_2$} (i2); }
 	\pause
+	\onslide<3-> { \draw[->, verA] (j.north west) to[out=105, in=25] node[midway, above]{$a_1 = a_{11} \oplus a_{12} $} (i1);
+                   \draw[->, verB] (j.south west) to[out=255, in=-25] node[midway, below]{$a_2 = a_{21} \oplus a_{22} $} (i2); }
 	\node (s1) at ($ (i1) + (5,0) $) {$s_1$};
 	\node (s2) at ($ (i2) + (5,0) $) {$s_2$};
-	\draw[->, verA] (j.north west) to[out=135, in=0] (s1);
-	\draw[->, verA] (s1) -- (i1);
-	\draw[->, verB] (j.south west) to[out=225, in=0] (s2);
-	\draw[->, verB] (s2) -- (i2);
+	\draw[->, verA] (j.north west) to[out=135, in=0] node[midway, above]{$a_{12}$} (s1);
+	\draw[->, verA] (s1) -- node[midway, above]{$a_{11}$} (i1);
+	\draw[->, verB] (j.south west) to[out=225, in=0] node[midway, below]{$a_{22}$} (s2);
+	\draw[->, verB] (s2) -- node[midway, below]{$a_{21}$} (i2);
 	\pause
-	\node (tgt) at ($ (j) - (5, 0) $) {$tgt$};
+	\node (tgt) at ($ (j) - (6.2, 0) $) {$tgt$};
 	\draw[->, dashed, thick, verA] (tgt.north east) to[out=45, in=195] node[midway, below]{$m_1$} (s1);
 	\draw[->, dashed, thick, verB] (tgt.south east) to[out=-45, in=165] node[midway, above]{$m_2$} (s2);
 \onslide<1->
@@ -392,19 +405,19 @@ Interpretation mistake: our paper proved something \emph{less} general:
   verB/.style = {color=yellow!60!black}]
 	\node (j) {$j$};
 	\node (i1)  at ($ (j) - (8,-1) $) {$i_1$};
-	\node (i2)  at ($ (j) - (7, 1) $) {$i_2$};
-	\draw[->, verA] (j.north west) to[out=115, in=25] node[midway, above]{$a_1$} (i1);
-	\draw[->, verB] (j.south west) to[out=245, in=-25] node[midway, below]{$a_2$} (i2);
+	\node (i2)  at ($ (j) - (9, 1) $) {$i_2$};
+	\draw[->, verA] (j.north west) to[out=105, in=25] node[midway, above]{$a_1 = a_{11} \oplus a_{12} \oplus a_{13} $} (i1);
+	\draw[->, verB] (j.south west) to[out=255, in=-25] node[midway, below]{$a_2 = a_{21} \oplus a_{22} \oplus a_{23} $} (i2);
 	\node (s1) at ($ (i1) + (5,0) $) {$s_1$};
 	\node (s2) at ($ (i2) + (5,0) $) {$s_2$};
-	\node (tgt1) at ($ (j) - (5, -1) $) {$tgt$};
-	\node (tgt2) at ($ (j) - (5, 1) $) {$tgt$};
-	\draw[->, verA] (j.north west) to[out=135, in=0] (s1);
-	\draw[->, verA] (s1) -- (tgt1) -- (i1);
-	\draw[->, verB] (j.south west) to[out=225, in=0] (s2);
-	\draw[->, verB] (s2) -- (tgt2) -- (i2);
-	\draw[->, dashed, thick, verA] (tgt1.south east) to[out=-45, in=200] (s1);
-	\draw[->, dashed, thick, verB] (tgt2.north east) to[out=45, in=160] (s2);
+	\node (tgt1) at ($ (j) - (6.2, -1) $) {$tgt$};
+	\node (tgt2) at ($ (j) - (6.2, 1) $) {$tgt$};
+	\draw[->, verA] (j.north west) to[out=135, in=0] node[midway, above]{$a_{13}$} (s1);
+	\draw[->, verA] (s1) -- node[midway, above]{$a_{11}$} (tgt1) -- node[near start, above]{$a_{12}$} (i1);
+	\draw[->, verB] (j.south west) to[out=225, in=0] node[midway, below]{$a_{23}$} (s2);
+	\draw[->, verB] (s2) -- node[midway, below]{$a_{21}$} (tgt2) -- node[midway, below]{$a_{22}$} (i2);
+	\draw[->, dashed, thick, verA] (tgt1.south east) to[out=-45, in=200] node[near end, below]{$m_1$} (s1);
+	\draw[->, dashed, thick, verB] (tgt2.north east) to[out=45, in=160] node[near end, above]{$m_2$} (s2);
 \onslide<1->
 \end{tikzpicture}}
 \end{center}
@@ -414,10 +427,16 @@ Interpretation mistake: our paper proved something \emph{less} general:
 Already fixed! Same \textsc{evo-cr} as original authors available
 at [`github.com/oracle/aaosl-agda`](https://github.com/oracle/aaosl-agda)
 
-# Core Security Principle: Hops Never Cross
+# Which AAOSL's enjoy \textsc{aoc} and \textsc{evo-cr}?
+
+Nothing special about building the skiplist with powers of 2\pause
+
+In fact, any skiplist such that hops never \emph{cross} will enjoy \textsc{AOC} and \textsc{EVO-CR}
+
+\vfill
 
 \begin{center}
-\resizebox{\textwidth}{!}{
+\resizebox{.7\textwidth}{!}{
 \begin{tikzpicture}
   \node                      (h1) {$h_1$};
   \node [above = of h1]      (h2) {$h_2$};
@@ -425,7 +444,6 @@ at [`github.com/oracle/aaosl-agda`](https://github.com/oracle/aaosl-agda)
   \node [left = of tgt1]     (tgt2) {$\hoptgt\;h_2$};
   \node [below right = of h1] (j1p) {};
   \node [right = of j1p]       (j2) {$j_2$};
-
   \node (form)  at ($ (tgt2)!0.5!(tgt1) $) {$<$};
   \node (form3) at ($ (tgt1)!0.5!(j1p) $) {$<$};
   \draw [line width=0.25mm, ->] (j2) |- (h2.south) -| (tgt2);
@@ -438,10 +456,81 @@ at [`github.com/oracle/aaosl-agda`](https://github.com/oracle/aaosl-agda)
 \end{tikzpicture}}
 \end{center}
 
+\vfill
+
 \pause
 
 If $\hoptgt\;h_2 < \hoptgt\;h_1$ and $hoptgt\;h_1 < j_2$, then $j_1 \leq j_2$.
 
+\vfill
+
 # Working Modulo Hash Collisions
 
-# Future Work and Conclusions
+The security proofs happen modulo hash collisions. \pause
+
+AAOSL enjoys \textsc{EVO-CR} iff an adversary cannot
+invert the hash function in polynomial time.\pause
+
+Our Agda development was made modulo _existential_ hash collisions:
+```agda
+HashBroke : Set
+HashBroke = ∃[ (x , y) ] (x ≢ y × hash x ≡ hash y)
+
+prop : A → B → ⋯ → Either HashBroke Result
+```
+
+\pause
+
+Unfortunate: requires manual inspection
+that collisions are constructed from data
+provided in `A`, `B`, etc., in polynomial time.
+
+\pause
+
+No different than checking a pen-and-paper proof, though.
+
+# Future Work: Explicit Hash Collisions
+
+Instead of:
+
+```agda
+prop : A → B → ⋯ → Either HashBroke Result
+```
+
+\vfill
+\pause
+
+Define a relaton `prop-HB` capturing where the collisions can come from in `prop`:
+
+```agda
+prop : (a : A) → (b : B) → ⋯ → Either (prop-HB a b ⋯) Result
+
+collision : prop-HB a b ⋯ → HashBroke
+```
+Only have to check `collision` runs in polynomial time.
+
+\vfill
+\pause
+
+Non-trivial effort: every Agda function `f` needs its own `f-HB` relation
+
+\vfill
+
+# Conclusions
+
+Machine checked the claims from Maniatis and Baker: AAOSL does enjoy \textsc{evo-cr}.
+
+\vfill
+\pause
+
+Formal model in Agda enabled experimentation.\pause
+
+- Simpler advancement proof definition
+- Simpler `auth` function definition
+    + Core principle: `auth j d hs ≡ auth j d' hs'` implies `d ≡ d'` and `hs ≡ hs'` modulo hash collisions
+
+\vfill
+\pause
+
+Being precise is important, even on paper. Maniatis and Baker's original description of \textsc{evo-cr}
+is in plain english, which means we had to interpret it, and we missed a detail.
