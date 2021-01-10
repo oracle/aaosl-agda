@@ -27,7 +27,7 @@ module AAOSL.Concrete where
  open import AAOSL.Lemmas
  open import AAOSL.Hops
  open import AAOSL.Abstract.Hash
- open import AAOSL.Abstract.Advancement
+ open import AAOSL.Abstract.DepRel
 
  ---------------------------------------------------
  -- Translating the proofs about Hops into a DepRel,
@@ -76,4 +76,5 @@ module AAOSL.Concrete where
     (hash-cr : ∀{x y} → hash x ≡ hash y → Collision hash x y ⊎ x ≡ y)
   where
 
-  open WithAbstractDepRel hash hash-cr encodeℕ encodeℕ-inj skiplog-dep-rel
+  open import AAOSL.Abstract.Advancement hash hash-cr encodeℕ encodeℕ-inj skiplog-dep-rel
+  open import AAOSL.Abstract.EvoCR hash hash-cr encodeℕ encodeℕ-inj skiplog-dep-rel
