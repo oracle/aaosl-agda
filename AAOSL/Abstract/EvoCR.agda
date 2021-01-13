@@ -1,3 +1,8 @@
+{- Formal verification of authenticated append-only skiplists in Agda, version 1.0.
+
+   Copyright (c) 2021 Victor C Miraldo.
+   Licensed under the Universal Permissive License v 1.0 as shown at https://opensource.oracle.com/licenses/upl
+-}
 open import Data.Unit.NonEta
 open import Data.Empty
 open import Data.Sum
