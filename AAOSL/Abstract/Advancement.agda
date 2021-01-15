@@ -672,10 +672,13 @@ module AAOSL.Abstract.Advancement
   mbr-not-init (_ , _ , m) = m
 
   -- Rebuilding it is the same as rebuilding an advancement proof, but we
-  -- explicitely compute the authenticator at i.
+  -- explicitly compute the authenticator at i.
+
+  insertAuth : View → ℕ → Hash → View
+  insertAuth t i d = t ∪₁ (i , auth i d t)
+
   rebuildMP : ∀{j i} → MembershipProof j i → View → View
-  rebuildMP {j} {i} mbr t = rebuild (mbr-proof mbr)
-                                    (t ∪₁ (i , auth i (mbr-datum mbr) t))
+  rebuildMP {j} {i} mbr t = rebuild (mbr-proof mbr) (insertAuth t i (mbr-datum mbr))
 
   semi-evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
          → (a₁ : AdvPath j i₁)
