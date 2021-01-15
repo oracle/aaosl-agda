@@ -236,16 +236,18 @@ module AAOSL.Abstract.EvoCR
           → ∀{s₁ s₂ tgt}{u₁ u₂ : View}
           → (m₁ : MembershipProof s₁ tgt)(m₂ : MembershipProof s₂ tgt)
           → s₁ ∈AP a₁ → s₂ ∈AP a₂
-          → tgt ≢ 0 → tgt ≤ s₁ → s₁ ≤ s₂ -- wlog
+          → s₁ ≤ s₂ -- wlog
           → i₁ ≤ tgt
           → i₂ ≤ tgt
           → rebuildMP m₁ u₁ s₁ ≡ rebuild a₁ t₁ s₁
           → rebuildMP m₂ u₂ s₂ ≡ rebuild a₂ t₂ s₂
           → HashBroke ⊎ (mbr-datum m₁ ≡ mbr-datum m₂)
   evo-cr {t₁ = t₁} {t₂} a₁ a₂ hyp {s₁} {s₂} {tgt} {u₁} {u₂}
-      m₁ m₂ s₁∈a₁ s₂∈a₂ t≢0 t≤s₁ s₁≤s₂ i₁≤t i₂≤t c₁ c₂
+      m₁ m₂ s₁∈a₁ s₂∈a₂ s₁≤s₂ i₁≤t i₂≤t c₁ c₂
     with ∈AP-cut a₁ s₁∈a₁ | ∈AP-cut a₂ s₂∈a₂
   ...| ((a₁₁ , a₁₂) , refl) | ((a₂₁ , a₂₂) , refl)
+    with lemma1 (mbr-proof m₁)
+  ...| t≤s₁
   -- The first part of the proof is find some points common to three
   -- of the provided proofs. This is given in Figure 4 of Maniatis and Baker,
   -- and they are called M and R too, to help make it at least a little clear.
@@ -261,38 +263,40 @@ module AAOSL.Abstract.EvoCR
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ M-a1a2
   -- Similarly, for a₂₂ and m₂
-    with AgreeOnCommon a₂₂ (mbr-proof m₂) (trans (sym (rebuild-⊕' a₂₁ a₂₂ ∈AP-src)) (sym c₂)) M∈a₂₂ M∈m₂
+    with AgreeOnCommon a₂₂ (mbr-proof m₂) (trans (sym (rebuild-⊕ a₂₁ a₂₂ ∈AP-src)) (sym c₂)) M∈a₂₂ M∈m₂
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ M-a2m2
+  ...| inj₂ M-a22m2
   -- Which brings us to: rebuild a1 M == rebuild m2 M
-    with trans (trans M-a1a2 (rebuild-⊕' a₂₁ a₂₂ M∈a₂₂)) M-a2m2
+    with trans (trans M-a1a2 (rebuild-⊕ a₂₁ a₂₂ M∈a₂₂)) M-a22m2
   ...| M-a1m2
-  -- Well, if a1 and m2 agree on one point, they agree on all points. In particular, they
+  -- If a1 and m2 agree on one point, they agree on all points. In particular, they
   -- agree on R!
     with ∈AP-cut (mbr-proof m₂) M∈m₂
   ...| ((m₂₁ , m₂₂) , refl)
-    with AgreeOnCommon-∈ a₁ m₂₂ (∈AP-⊕-intro-l M∈a₁₁)
-           (trans M-a1m2 (rebuild-⊕' m₂₁ m₂₂ ∈AP-src))
+    with trans M-a1m2 (rebuild-⊕ m₂₁ m₂₂ ∈AP-src)
+  ...| M-a1m22
+    with AgreeOnCommon-∈ a₁ m₂₂ (∈AP-⊕-intro-l M∈a₁₁) M-a1m22
            (∈AP-⊕-intro-r R∈a₁₂) (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁)))
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ R-a1m2
+  ...| inj₂ R-a1m22
+    with AgreeOnCommon a₁₂ (mbr-proof m₁) (trans (sym (rebuild-⊕ a₁₁ a₁₂ ∈AP-src)) (sym c₁)) R∈a₁₂ R∈m₁
+  ...| inj₁ hb = inj₁ hb
+  ...| inj₂ R-a12m1
   -- Which finally lets us argue that m1 and m2 also agree on R. Similarly, if they agree
   -- on one point they agree on all points.
-    with AgreeOnCommon a₁₂ (mbr-proof m₁) (trans (sym (rebuild-⊕' a₁₁ a₁₂ ∈AP-src)) (sym c₁)) R∈a₁₂ R∈m₁
-  ...| inj₁ hb = inj₁ hb
-  ...| inj₂ R-a1m1
-    with trans (trans (sym R-a1m2) (rebuild-⊕' a₁₁ a₁₂ R∈a₁₂)) R-a1m1
-  ...| R-m1m2
     with ∈AP-cut (mbr-proof m₁) R∈m₁
   ...| ((m₁₁ , m₁₂) , refl)
-    with AgreeOnCommon-∈ m₂₂ m₁₂ (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁)))
-           (trans R-m1m2 (rebuild-⊕' m₁₁ m₁₂ ∈AP-src)) ∈AP-tgt ∈AP-tgt
+    with trans (trans (trans (sym R-a1m22) (rebuild-⊕ a₁₁ a₁₂ R∈a₁₂)) R-a12m1) (rebuild-⊕ m₁₁ m₁₂ ∈AP-src)
+  ...| R-m22m12
+    with AgreeOnCommon-∈ m₂₂ m₁₂ (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁))) R-m22m12 ∈AP-tgt ∈AP-tgt
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ res
-    with trans (rebuild-⊕' m₂₁ m₂₂ ∈AP-tgt) (trans res (sym (rebuild-⊕' m₁₁ m₁₂ ∈AP-tgt)))
-  ...| half with rebuild-tgt-lemma (mbr-proof m₁)
+  ...| inj₂ tgt-m22m12
+    with trans (rebuild-⊕ m₂₁ m₂₂ ∈AP-tgt) (trans tgt-m22m12 (sym (rebuild-⊕ m₁₁ m₁₂ ∈AP-tgt)))
+  ...| tgt-m1m2 with rebuild-tgt-lemma (mbr-proof m₁)
                        {u₁ ∪₁ (tgt , auth tgt (mbr-datum m₁) u₁) }
                    | rebuild-tgt-lemma (mbr-proof m₂)
                        {u₂ ∪₁ (tgt , auth tgt (mbr-datum m₂) u₂) }
   ...| l1 | l2
-    rewrite ≟ℕ-refl tgt = auth-inj-1 {tgt} {mbr-datum m₁} {mbr-datum m₂} t≢0 (trans (sym l1) (trans (sym half) l2))
+    with trans (sym l1) (trans (sym tgt-m1m2) l2)
+  ...| auths≡
+    rewrite ≟ℕ-refl tgt = auth-inj-1 {tgt} {mbr-datum m₁} {mbr-datum m₂} (mbr-not-init m₁) auths≡

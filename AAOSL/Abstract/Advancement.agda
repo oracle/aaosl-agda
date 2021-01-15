@@ -118,11 +118,102 @@ module AAOSL.Abstract.Advancement
   deps-hash : ℕ → View → List Hash
   deps-hash s tbl = List-map tbl (depsof s)
 
-  -- TODO-2: Make auth, auth-inj-1 and auth-inj-2 module parameters
-  -- TODO-1: Make sure the names are consistent with the paper
-
   --------------------------
   -- Defining authenticators
+  --
+  -- We need a function for computing the authenticator for a
+  -- log position given its index, a hash of its datum, and a
+  -- View that provides the authenticators for each of the
+  -- indexes' dependencies.  We also need to prove two
+  -- injectivity lemmas for this function, showing that, unless
+  -- there is a hash collision, the function is injective in
+  -- both the datum hashes and also the dependencies.
+  --
+  -- Below we define the function (called auth') as presented by
+  -- Maniatis and Baker, and prove two injectivity lemmas for
+  -- it: auth-inj-1' and auth-inj-2'.
+  --
+  -- Our development made clear that any such function that
+  -- satisfies these two injectivity properties suffices, and we
+  -- found a much simpler definition, which is presented below
+  -- (auth, auth-inj-1 and auth-inj-2), which are the ones
+  -- actually used by the rest of the proof.
+
+  -- TODO-2: Make auth, auth-inj-1 and auth-inj-2 module
+  -- parameters that can be instantiated with either version, or
+  -- any other function satisfying these properties
+
+  -- Partial authenticators comes first.
+  p-auth : (i : ℕ) → Hash → Hash → Hash
+  p-auth i h hᵢ = hash (encodeI i ++ (encodeH h ++ encodeH hᵢ))
+
+  -- Together with their injectivity modulo hash collisions
+  p-auth-inj : ∀{i h}(m n : Hash) → p-auth i h m ≡ p-auth i h n
+             → HashBroke ⊎ m ≡ n
+  p-auth-inj {i} {h} m n pm≡pn
+     with hash-cr pm≡pn
+  ...| inj₁ col = inj₁ (( encodeI i ++ encodeH h ++ encodeH m
+                        , encodeI i ++ encodeH h ++ encodeH n
+                       ), col)
+  ...| inj₂ prf with ++-inj {m = encodeI i} {n = encodeI i} refl prf
+  ...|            (_ , hm≡hn) with ++-inj {m = encodeH h} {n = encodeH h} refl hm≡hn
+  ...|                          (_ , m≡n) = inj₂ ( encodeH-inj m n m≡n)
+
+  auth' : (s : ℕ) → Hash → View → Hash
+  auth' s h tbl = hash-concat (List-map (p-auth s h) (deps-hash s tbl))
+
+  auth-inj-1' : {j : ℕ}{h₁ h₂ : Hash}{t₁ t₂ : View}
+             → j ≢ 0
+             → auth' j h₁ t₁ ≡ auth' j h₂ t₂
+             → HashBroke ⊎ h₁ ≡ h₂
+  auth-inj-1' {j} {h₁} {h₂} {t₁} {t₂} j≢s₀ hip
+    with depsof j | inspect depsof j
+  ...| []       | [ R ] = ⊥-elim (j≢s₀ (depsof-ne j R))
+  ...| dj ∷ djs | _
+         with hash-concat-inj {List-map (p-auth j h₁) (List-map t₁ (dj ∷ djs))}
+                              {List-map (p-auth j h₂) (List-map t₂ (dj ∷ djs))} hip
+  ...|     inj₁ hb = inj₁ hb
+  ...|     inj₂ res
+             with ∷-injective res
+  ...|         aux , auxs
+                 with hash-cr aux
+  ...|             inj₁ col  = inj₁ (( encodeI j ++ encodeH h₁ ++ encodeH (t₁ dj)
+                                     , encodeI j ++ encodeH h₂ ++ encodeH (t₂ dj))
+                                    , col)
+  ...|             inj₂ res'
+                     with ++-injₕ {m = encodeI j} res'
+  ...|                 res''
+                           with ++-inj {m = encodeH h₁} {encodeH h₂}
+                                       (encodeH-len-lemma h₁ h₂) res''
+  ...|                       hh , ll = inj₂ (encodeH-inj h₁ h₂ hh)
+
+  auth-inj-2' : {i : ℕ}{h : Hash}(t₁ t₂ : View)
+             → auth' i h t₁ ≡ auth' i h t₂
+             → HashBroke ⊎ Agree t₁ t₂ (depsof i)
+  auth-inj-2' {i} {h} t₁ t₂ hip
+    with hash-concat-inj {List-map (p-auth i h) (List-map t₁ (depsof i))}
+                         {List-map (p-auth i h) (List-map t₂ (depsof i))} hip
+  ...| inj₁ hb  = inj₁ hb
+  ...| inj₂ res = auth-inj-2-aux {i} {h} t₁ t₂ (depsof i) res
+       where
+     auth-inj-2-aux : {i : ℕ}{h : Hash}(t₁ t₂ : View)(l : List ℕ)
+                →  List-map (p-auth i h) (List-map t₁ l)
+                 ≡ List-map (p-auth i h) (List-map t₂ l)
+                → HashBroke ⊎ Agree t₁ t₂ l
+     auth-inj-2-aux {i} {h} t₁ t₂ [] pl₁≡pl₂ = inj₂ []
+     auth-inj-2-aux {i} {h} t₁ t₂ (x ∷ xs) pl₁≡pl₂
+        with ∷-injective pl₁≡pl₂
+     ...| (hprf , tprf)
+          with p-auth-inj {i} {h} (t₁ x) (t₂ x) hprf
+     ...|   inj₁ hb = inj₁ hb
+     ...|   inj₂ t₁x≡t₂x
+            with auth-inj-2-aux {i} {h} t₁ t₂ xs tprf
+     ...|      inj₁ hb = inj₁ hb
+     ...|      inj₂ agreeTail = inj₂ (t₁x≡t₂x All.∷ agreeTail)
+
+  -- Next we define a much simpler variant of the auth function,
+  -- and prove that it too satisfies the required injectivity
+  -- properties.
 
   -- Authenticators will depend on all p-auths of the
   -- dependencies of a node.
@@ -263,18 +354,18 @@ module AAOSL.Abstract.Advancement
   ∈AP-≥ (step _ hyp) = ∈AP-≥ hyp
 
 
-  rebuild-⊕' : ∀{j k i}
+  rebuild-⊕ : ∀{j k i}
              → {t : View}
              → (a₁ : AdvPath j k)
              → (a₂ : AdvPath k i)
              → ∀{l} → l ∈AP a₂
              → rebuild (a₁ ⊕ a₂) t l ≡ rebuild a₂ t l
-  rebuild-⊕' AdvDone a₂ hyp = refl
-  rebuild-⊕' {j} (AdvThere x h a₁) a₂ {l} hyp
+  rebuild-⊕ AdvDone a₂ hyp = refl
+  rebuild-⊕ {j} (AdvThere x h a₁) a₂ {l} hyp
     with j ≟ℕ l
   ...| yes nope = ⊥-elim (≤-≢-mon (hop-prog h) (hop-≤ h)
                           (≤-trans (∈AP-≤ hyp) (lemma1 a₁)) (sym nope))
-  ...| no ok    = rebuild-⊕' a₁ a₂ hyp
+  ...| no ok    = rebuild-⊕ a₁ a₂ hyp
 
   ∈AP-cut : ∀{j k i}
           → (a : AdvPath j i)
@@ -317,16 +408,7 @@ module AAOSL.Abstract.Advancement
     → ∀{t} → rebuild a t s ≡ rebuild (∈AP-cut₁ a prf) t s
   ∈AP-cut₁-rebuild a prf s∈cut {t}
     with ∈AP-cut a prf
-  ...| (x , y) , refl = rebuild-⊕' x y s∈cut
-
-  rebuild-⊕ : ∀{j k i}
-            → {t : View}
-            → (a₁ : AdvPath j k)
-            → (a₂ : AdvPath k i)
-            → rebuild (a₁ ⊕ a₂) t k ≡ rebuild a₂ t k
-  rebuild-⊕ {k = k} a₁ AdvDone = rebuild-⊕' a₁ AdvDone {k} hereTgtDone
-  rebuild-⊕ {k = k} {i = i} a₁ (AdvThere .{k} d h p) = rebuild-⊕' a₁ (AdvThere d h p) hereTgtThere
-
+  ...| (x , y) , refl = rebuild-⊕ x y s∈cut
 
   ∈AP-⊕ : ∀{j i₁ k i₂ i}
         → {e  : AdvPath j k}{a₁ : AdvPath k i₁}
@@ -522,7 +604,7 @@ module AAOSL.Abstract.Advancement
     with ≤-total (hop-tgt h₁) (hop-tgt h₂)
   ...| inj₁ h₁<h₂ with split-⊕ ≤-refl (≤∧≢⇒< h₁<h₂ (diffHop ∘ hop-tgt-inj)) go a₂
   ...| ((x , y) , refl)
-    with aoc k t₁ t₂ a₁ y (trans (witness (hop-tgt-is-dep h₁) agree) (rebuild-⊕ x y))
+    with aoc k t₁ t₂ a₁ y (trans (witness (hop-tgt-is-dep h₁) agree) (rebuild-⊕ x y ∈AP-src))
   ...| inj₁ hb  = inj₁ hb
   ...| inj₂ res = inj₂ (PMeetL x a₁ y (≤∧≢⇒< h₁<h₂ (diffHop ∘ hop-tgt-inj)) agree res)
   aoc {j = j} k t₁ t₂ (AdvThere d₁ h₁ a₁) (AdvThere d₂ h₂ a₂) hip
@@ -533,7 +615,7 @@ module AAOSL.Abstract.Advancement
      | inj₂ h₂<h₁ with split-⊕ ≤-refl (≤∧≢⇒< h₂<h₁ (diffHop ∘ hop-tgt-inj ∘ sym))
                          (≤-trans k (lemma1 a₂)) a₁
   ...| ((x , y) , refl)
-    with aoc k t₁ t₂ y a₂ (trans (sym (rebuild-⊕ x y))
+    with aoc k t₁ t₂ y a₂ (trans (sym (rebuild-⊕ x y ∈AP-src))
                                  (witness (hop-tgt-is-dep h₂) agree))
   ...| inj₁ hb  = inj₁ hb
   ...| inj₂ res = inj₂ (PMeetR x y a₂ (≤∧≢⇒< h₂<h₁ (diffHop ∘ hop-tgt-inj ∘ sym)) agree res)
@@ -609,7 +691,7 @@ module AAOSL.Abstract.Advancement
   ...| no  ok
     with aoc-correct aoc₁ (∈AP-⊕ hyp1 hyp2) hyp2
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ r  = inj₂ (trans (rebuild-⊕' e a₁ (∈AP-⊕ hyp1 hyp2)) r)
+  ...| inj₂ r  = inj₂ (trans (rebuild-⊕ e a₁ (∈AP-⊕ hyp1 hyp2)) r)
 
   aoc-correct {j} {t₁ = t₁} {t₂} (PMeetL e a₁ a₂ x₁ x₂ aoc₁) hereTgtThere hereTgtThere
     rewrite ≟ℕ-refl j
@@ -625,7 +707,7 @@ module AAOSL.Abstract.Advancement
   ...| no  ok
     with aoc-correct aoc₁ hyp1 (∈AP-⊕ hyp2 hyp1)
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ r  = inj₂ (trans r (sym (rebuild-⊕' e a₂ (∈AP-⊕ hyp2 hyp1))))
+  ...| inj₂ r  = inj₂ (trans r (sym (rebuild-⊕ e a₂ (∈AP-⊕ hyp2 hyp1))))
 
   AgreeOnCommon : ∀{j i₁ i₂}
                 → {t₁ t₂ : View}
@@ -656,9 +738,9 @@ module AAOSL.Abstract.Advancement
   AgreeOnCommon-∈ a₁ a₂ j2∈a1 hyp ia1 ia2
     with ∈AP-cut a₁ j2∈a1
   ...| ((a₁₁ , a₁₂) , refl)
-    with AgreeOnCommon a₁₂ a₂ (trans (sym (rebuild-⊕' a₁₁ a₁₂ ∈AP-src)) hyp) (∈AP-⊕ ia1 ia2) ia2
+    with AgreeOnCommon a₁₂ a₂ (trans (sym (rebuild-⊕ a₁₁ a₁₂ ∈AP-src)) hyp) (∈AP-⊕ ia1 ia2) ia2
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ res = inj₂ (trans (rebuild-⊕' a₁₁ a₁₂ (∈AP-⊕ ia1 ia2)) res)
+  ...| inj₂ res = inj₂ (trans (rebuild-⊕ a₁₁ a₁₂ (∈AP-⊕ ia1 ia2)) res)
 
 
   -----------------------
@@ -681,10 +763,22 @@ module AAOSL.Abstract.Advancement
   mbr-not-init (_ , _ , m) = m
 
   -- Rebuilding it is the same as rebuilding an advancement proof, but we
-  -- explicitely compute the authenticator at i.
+  -- explicitly compute the authenticator at i.
+
+  insertAuth : View → ℕ → Hash → View
+  insertAuth t i d = t ∪₁ (i , auth i d t)
+
   rebuildMP : ∀{j i} → MembershipProof j i → View → View
-  rebuildMP {j} {i} mbr t = rebuild (mbr-proof mbr)
-                                    (t ∪₁ (i , auth i (mbr-datum mbr) t))
+  rebuildMP {j} {i} mbr t = rebuild (mbr-proof mbr) (insertAuth t i (mbr-datum mbr))
+
+  -- IMPORTANT NOTE: The following is the proof of the Evolutionary Collision
+  -- Resistance property, as described in our CPP 2021 paper.  We subsequently
+  -- realized that this property is less general than the property intended
+  -- (and described informally) by Maniatis and Baker, due to the two
+  -- superfluous hypotheses noted below.  We have since formulated and proved
+  -- the intended property; see AAOSL.Abstract.EvoCR.evocr.  We are working on
+  -- an extended version of the paper that is updated to reflect this change.
+  -- TODO-1: link to extended version when available.
 
   semi-evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
          → (a₁ : AdvPath j i₁)
