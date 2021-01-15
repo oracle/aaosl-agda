@@ -236,16 +236,18 @@ module AAOSL.Abstract.EvoCR
           → ∀{s₁ s₂ tgt}{u₁ u₂ : View}
           → (m₁ : MembershipProof s₁ tgt)(m₂ : MembershipProof s₂ tgt)
           → s₁ ∈AP a₁ → s₂ ∈AP a₂
-          → tgt ≢ 0 → tgt ≤ s₁ → s₁ ≤ s₂ -- wlog
+          → s₁ ≤ s₂ -- wlog
           → i₁ ≤ tgt
           → i₂ ≤ tgt
           → rebuildMP m₁ u₁ s₁ ≡ rebuild a₁ t₁ s₁
           → rebuildMP m₂ u₂ s₂ ≡ rebuild a₂ t₂ s₂
           → HashBroke ⊎ (mbr-datum m₁ ≡ mbr-datum m₂)
   evo-cr {t₁ = t₁} {t₂} a₁ a₂ hyp {s₁} {s₂} {tgt} {u₁} {u₂}
-      m₁ m₂ s₁∈a₁ s₂∈a₂ t≢0 t≤s₁ s₁≤s₂ i₁≤t i₂≤t c₁ c₂
+      m₁ m₂ s₁∈a₁ s₂∈a₂ s₁≤s₂ i₁≤t i₂≤t c₁ c₂
     with ∈AP-cut a₁ s₁∈a₁ | ∈AP-cut a₂ s₂∈a₂
   ...| ((a₁₁ , a₁₂) , refl) | ((a₂₁ , a₂₂) , refl)
+    with lemma1 (mbr-proof m₁)
+  ...| t≤s₁
   -- The first part of the proof is find some points common to three
   -- of the provided proofs. This is given in Figure 4 of Maniatis and Baker,
   -- and they are called M and R too, to help make it at least a little clear.
@@ -295,4 +297,4 @@ module AAOSL.Abstract.EvoCR
                    | rebuild-tgt-lemma (mbr-proof m₂)
                        {u₂ ∪₁ (tgt , auth tgt (mbr-datum m₂) u₂) }
   ...| l1 | l2
-    rewrite ≟ℕ-refl tgt = auth-inj-1 {tgt} {mbr-datum m₁} {mbr-datum m₂} t≢0 (trans (sym l1) (trans (sym half) l2))
+    rewrite ≟ℕ-refl tgt = auth-inj-1 {tgt} {mbr-datum m₁} {mbr-datum m₂} (mbr-not-init m₁) (trans (sym l1) (trans (sym half) l2))
