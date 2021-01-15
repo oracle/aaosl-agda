@@ -261,35 +261,35 @@ module AAOSL.Abstract.EvoCR
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ M-a1a2
   -- Similarly, for a₂₂ and m₂
-    with AgreeOnCommon a₂₂ (mbr-proof m₂) (trans (sym (rebuild-⊕' a₂₁ a₂₂ ∈AP-src)) (sym c₂)) M∈a₂₂ M∈m₂
+    with AgreeOnCommon a₂₂ (mbr-proof m₂) (trans (sym (rebuild-⊕ a₂₁ a₂₂ ∈AP-src)) (sym c₂)) M∈a₂₂ M∈m₂
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ M-a2m2
   -- Which brings us to: rebuild a1 M == rebuild m2 M
-    with trans (trans M-a1a2 (rebuild-⊕' a₂₁ a₂₂ M∈a₂₂)) M-a2m2
+    with trans (trans M-a1a2 (rebuild-⊕ a₂₁ a₂₂ M∈a₂₂)) M-a2m2
   ...| M-a1m2
   -- Well, if a1 and m2 agree on one point, they agree on all points. In particular, they
   -- agree on R!
     with ∈AP-cut (mbr-proof m₂) M∈m₂
   ...| ((m₂₁ , m₂₂) , refl)
     with AgreeOnCommon-∈ a₁ m₂₂ (∈AP-⊕-intro-l M∈a₁₁)
-           (trans M-a1m2 (rebuild-⊕' m₂₁ m₂₂ ∈AP-src))
+           (trans M-a1m2 (rebuild-⊕ m₂₁ m₂₂ ∈AP-src))
            (∈AP-⊕-intro-r R∈a₁₂) (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁)))
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ R-a1m2
   -- Which finally lets us argue that m1 and m2 also agree on R. Similarly, if they agree
   -- on one point they agree on all points.
-    with AgreeOnCommon a₁₂ (mbr-proof m₁) (trans (sym (rebuild-⊕' a₁₁ a₁₂ ∈AP-src)) (sym c₁)) R∈a₁₂ R∈m₁
+    with AgreeOnCommon a₁₂ (mbr-proof m₁) (trans (sym (rebuild-⊕ a₁₁ a₁₂ ∈AP-src)) (sym c₁)) R∈a₁₂ R∈m₁
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ R-a1m1
-    with trans (trans (sym R-a1m2) (rebuild-⊕' a₁₁ a₁₂ R∈a₁₂)) R-a1m1
+    with trans (trans (sym R-a1m2) (rebuild-⊕ a₁₁ a₁₂ R∈a₁₂)) R-a1m1
   ...| R-m1m2
     with ∈AP-cut (mbr-proof m₁) R∈m₁
   ...| ((m₁₁ , m₁₂) , refl)
     with AgreeOnCommon-∈ m₂₂ m₁₂ (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁)))
-           (trans R-m1m2 (rebuild-⊕' m₁₁ m₁₂ ∈AP-src)) ∈AP-tgt ∈AP-tgt
+           (trans R-m1m2 (rebuild-⊕ m₁₁ m₁₂ ∈AP-src)) ∈AP-tgt ∈AP-tgt
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ res
-    with trans (rebuild-⊕' m₂₁ m₂₂ ∈AP-tgt) (trans res (sym (rebuild-⊕' m₁₁ m₁₂ ∈AP-tgt)))
+    with trans (rebuild-⊕ m₂₁ m₂₂ ∈AP-tgt) (trans res (sym (rebuild-⊕ m₁₁ m₁₂ ∈AP-tgt)))
   ...| half with rebuild-tgt-lemma (mbr-proof m₁)
                        {u₁ ∪₁ (tgt , auth tgt (mbr-datum m₁) u₁) }
                    | rebuild-tgt-lemma (mbr-proof m₂)

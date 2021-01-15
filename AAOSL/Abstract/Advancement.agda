@@ -263,18 +263,18 @@ module AAOSL.Abstract.Advancement
   ∈AP-≥ (step _ hyp) = ∈AP-≥ hyp
 
 
-  rebuild-⊕' : ∀{j k i}
+  rebuild-⊕ : ∀{j k i}
              → {t : View}
              → (a₁ : AdvPath j k)
              → (a₂ : AdvPath k i)
              → ∀{l} → l ∈AP a₂
              → rebuild (a₁ ⊕ a₂) t l ≡ rebuild a₂ t l
-  rebuild-⊕' AdvDone a₂ hyp = refl
-  rebuild-⊕' {j} (AdvThere x h a₁) a₂ {l} hyp
+  rebuild-⊕ AdvDone a₂ hyp = refl
+  rebuild-⊕ {j} (AdvThere x h a₁) a₂ {l} hyp
     with j ≟ℕ l
   ...| yes nope = ⊥-elim (≤-≢-mon (hop-prog h) (hop-≤ h)
                           (≤-trans (∈AP-≤ hyp) (lemma1 a₁)) (sym nope))
-  ...| no ok    = rebuild-⊕' a₁ a₂ hyp
+  ...| no ok    = rebuild-⊕ a₁ a₂ hyp
 
   ∈AP-cut : ∀{j k i}
           → (a : AdvPath j i)
@@ -317,16 +317,7 @@ module AAOSL.Abstract.Advancement
     → ∀{t} → rebuild a t s ≡ rebuild (∈AP-cut₁ a prf) t s
   ∈AP-cut₁-rebuild a prf s∈cut {t}
     with ∈AP-cut a prf
-  ...| (x , y) , refl = rebuild-⊕' x y s∈cut
-
-  rebuild-⊕ : ∀{j k i}
-            → {t : View}
-            → (a₁ : AdvPath j k)
-            → (a₂ : AdvPath k i)
-            → rebuild (a₁ ⊕ a₂) t k ≡ rebuild a₂ t k
-  rebuild-⊕ {k = k} a₁ AdvDone = rebuild-⊕' a₁ AdvDone {k} hereTgtDone
-  rebuild-⊕ {k = k} {i = i} a₁ (AdvThere .{k} d h p) = rebuild-⊕' a₁ (AdvThere d h p) hereTgtThere
-
+  ...| (x , y) , refl = rebuild-⊕ x y s∈cut
 
   ∈AP-⊕ : ∀{j i₁ k i₂ i}
         → {e  : AdvPath j k}{a₁ : AdvPath k i₁}
@@ -522,7 +513,7 @@ module AAOSL.Abstract.Advancement
     with ≤-total (hop-tgt h₁) (hop-tgt h₂)
   ...| inj₁ h₁<h₂ with split-⊕ ≤-refl (≤∧≢⇒< h₁<h₂ (diffHop ∘ hop-tgt-inj)) go a₂
   ...| ((x , y) , refl)
-    with aoc k t₁ t₂ a₁ y (trans (witness (hop-tgt-is-dep h₁) agree) (rebuild-⊕ x y))
+    with aoc k t₁ t₂ a₁ y (trans (witness (hop-tgt-is-dep h₁) agree) (rebuild-⊕ x y ∈AP-src))
   ...| inj₁ hb  = inj₁ hb
   ...| inj₂ res = inj₂ (PMeetL x a₁ y (≤∧≢⇒< h₁<h₂ (diffHop ∘ hop-tgt-inj)) agree res)
   aoc {j = j} k t₁ t₂ (AdvThere d₁ h₁ a₁) (AdvThere d₂ h₂ a₂) hip
@@ -533,7 +524,7 @@ module AAOSL.Abstract.Advancement
      | inj₂ h₂<h₁ with split-⊕ ≤-refl (≤∧≢⇒< h₂<h₁ (diffHop ∘ hop-tgt-inj ∘ sym))
                          (≤-trans k (lemma1 a₂)) a₁
   ...| ((x , y) , refl)
-    with aoc k t₁ t₂ y a₂ (trans (sym (rebuild-⊕ x y))
+    with aoc k t₁ t₂ y a₂ (trans (sym (rebuild-⊕ x y ∈AP-src))
                                  (witness (hop-tgt-is-dep h₂) agree))
   ...| inj₁ hb  = inj₁ hb
   ...| inj₂ res = inj₂ (PMeetR x y a₂ (≤∧≢⇒< h₂<h₁ (diffHop ∘ hop-tgt-inj ∘ sym)) agree res)
@@ -609,7 +600,7 @@ module AAOSL.Abstract.Advancement
   ...| no  ok
     with aoc-correct aoc₁ (∈AP-⊕ hyp1 hyp2) hyp2
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ r  = inj₂ (trans (rebuild-⊕' e a₁ (∈AP-⊕ hyp1 hyp2)) r)
+  ...| inj₂ r  = inj₂ (trans (rebuild-⊕ e a₁ (∈AP-⊕ hyp1 hyp2)) r)
 
   aoc-correct {j} {t₁ = t₁} {t₂} (PMeetL e a₁ a₂ x₁ x₂ aoc₁) hereTgtThere hereTgtThere
     rewrite ≟ℕ-refl j
@@ -625,7 +616,7 @@ module AAOSL.Abstract.Advancement
   ...| no  ok
     with aoc-correct aoc₁ hyp1 (∈AP-⊕ hyp2 hyp1)
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ r  = inj₂ (trans r (sym (rebuild-⊕' e a₂ (∈AP-⊕ hyp2 hyp1))))
+  ...| inj₂ r  = inj₂ (trans r (sym (rebuild-⊕ e a₂ (∈AP-⊕ hyp2 hyp1))))
 
   AgreeOnCommon : ∀{j i₁ i₂}
                 → {t₁ t₂ : View}
@@ -656,9 +647,9 @@ module AAOSL.Abstract.Advancement
   AgreeOnCommon-∈ a₁ a₂ j2∈a1 hyp ia1 ia2
     with ∈AP-cut a₁ j2∈a1
   ...| ((a₁₁ , a₁₂) , refl)
-    with AgreeOnCommon a₁₂ a₂ (trans (sym (rebuild-⊕' a₁₁ a₁₂ ∈AP-src)) hyp) (∈AP-⊕ ia1 ia2) ia2
+    with AgreeOnCommon a₁₂ a₂ (trans (sym (rebuild-⊕ a₁₁ a₁₂ ∈AP-src)) hyp) (∈AP-⊕ ia1 ia2) ia2
   ...| inj₁ hb = inj₁ hb
-  ...| inj₂ res = inj₂ (trans (rebuild-⊕' a₁₁ a₁₂ (∈AP-⊕ ia1 ia2)) res)
+  ...| inj₂ res = inj₂ (trans (rebuild-⊕ a₁₁ a₁₂ (∈AP-⊕ ia1 ia2)) res)
 
 
   -----------------------
