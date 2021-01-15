@@ -771,6 +771,15 @@ module AAOSL.Abstract.Advancement
   rebuildMP : ∀{j i} → MembershipProof j i → View → View
   rebuildMP {j} {i} mbr t = rebuild (mbr-proof mbr) (insertAuth t i (mbr-datum mbr))
 
+  -- IMPORTANT NOTE: The following is the proof of the Evolutionary Collision
+  -- Resistance property, as described in our CPP 2021 paper.  We subsequently
+  -- realized that this property is less general than the property intended
+  -- (and described informally) by Maniatis and Baker, due to the two
+  -- superfluous hypotheses noted below.  We have since formulated and proved
+  -- the intended property; see AAOSL.Abstract.EvoCR.evocr.  We are working on
+  -- an extended version of the paper that is updated to reflect this change.
+  -- TODO-1: link to extended version when available.
+
   semi-evo-cr : ∀{j i₁ i₂}{t₁ t₂ : View}
          → (a₁ : AdvPath j i₁)
          → (a₂ : AdvPath j i₂)
