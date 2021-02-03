@@ -151,6 +151,18 @@ module AAOSL.Lemmas where
  +-*-suc' m n with *-suc m n
  ...| xx rewrite *-comm n m = xx
 
+ ----------------------------------
+ -- Properties of divisibility by 2
+
+ 1+n=m*2⇒m<1+n : ∀ m n → 1 + n ≡ m * 2 → m < 1 + n
+ 1+n=m*2⇒m<1+n (suc zero) (suc n) eq = s≤s (s≤s z≤n)
+ 1+n=m*2⇒m<1+n (suc (suc m)) (suc (suc n)) eq = s≤s (<-trans ih (n<1+n (1 + n)))
+   where
+   eq' : 1 + n ≡ (1 + m) * 2
+   eq' = +-cancelˡ-≡ 2 eq
+
+   ih : (1 + m) < 1 + n
+   ih = 1+n=m*2⇒m<1+n (1 + m) n eq'
 
  -------------------------------
  -- Properties of exponentiation
