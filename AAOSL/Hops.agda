@@ -45,11 +45,12 @@ module AAOSL.Hops where
  -- otherwise, it is one plus the number of times
  -- that two divides said index.
  --
- -- lvlOf must be marked terminating because in one branch
- -- we make recursive call on the quotient of the argument, which
- -- is not obviously smaller than that argument
- -- This is justified by proving that lvlOf is equal to lvlOfWF,
- -- which uses well-founded recursion
+ -- lvlOf must be marked terminating because, in one branch, we make a
+ -- recursive call on the quotient of the argument. Agda's termination
+ -- checker cannot confirm that this is structurally smaller than the
+ -- argument. Use of the pragma is later justified by the proof
+ -- lvlOf≡lvlOfWF that lvlOf is equal to lvlOfWF, an alternative
+ -- implementation using well-founded recursion.
  {-# TERMINATING #-}
  lvlOf : ℕ → ℕ
  lvlOf 0 = 0
@@ -61,8 +62,8 @@ module AAOSL.Hops where
  lvlOfWFHelp : (n : ℕ) → Acc _<_ n → ℕ
  lvlOfWFHelp 0 p = 0
  lvlOfWFHelp (suc n) (acc rs) with even? (suc n)
- ... | no _ = 1
- ... | yes (divides q eq) = suc (lvlOfWFHelp q (rs q (1+n=m*2⇒m<1+n q n eq)))
+ ...| no _ = 1
+ ...| yes (divides q eq) = suc (lvlOfWFHelp q (rs q (1+n=m*2⇒m<1+n q n eq)))
 
  lvlOfWF : ℕ → ℕ
  lvlOfWF n = lvlOfWFHelp n (<-wellFounded n)
@@ -79,8 +80,8 @@ module AAOSL.Hops where
  lvlOf≡lvlOfWFHelp : (n : ℕ) (p : Acc _<_ n) → lvlOf n ≡ lvlOfWFHelp n p
  lvlOf≡lvlOfWFHelp 0 p = refl
  lvlOf≡lvlOfWFHelp (suc n) (acc rs) with even? (suc n)
- ... | no _ = refl
- ... | yes (divides q eq) =
+ ...| no _ = refl
+ ...| yes (divides q eq) =
    cong suc (lvlOf≡lvlOfWFHelp q (rs q (1+n=m*2⇒m<1+n q n eq)))
 
  lvlOf≡lvlOfWF : (n : ℕ) → lvlOf n ≡ lvlOfWF n
@@ -92,10 +93,10 @@ module AAOSL.Hops where
    go : (n : ℕ) (p : Acc _<_ n) → lvlOfWFHelp n p ≡ lvlOf' (to n)
    go 0 p = refl
    go (suc n) (acc rs) with even? (suc n)
-   ... | no _ = refl
-   ... | yes (divides q eq) with go q (rs q (1+n=m*2⇒m<1+n q n eq))
-   ... | ih with to q
-   ... | pos l d odd prf = cong suc ih
+   ...| no _ = refl
+   ...| yes (divides q eq) with go q (rs q (1+n=m*2⇒m<1+n q n eq))
+   ...| ih with to q
+   ...| pos l d odd prf = cong suc ih
 
  lvl≥2-even : ∀ {n} → 2 ≤ lvlOf n → Even n
  lvl≥2-even {suc n} x
