@@ -10,6 +10,7 @@ open import Data.Sum
 open import Data.Nat
 open import Data.Nat.Divisibility
 open import Data.Nat.Properties
+open import Data.Nat.Induction
 open import Data.List renaming (map to List-map)
 open import Data.List.Relation.Unary.Any
 open import Data.List.Relation.Unary.All
@@ -43,13 +44,29 @@ module AAOSL.Hops where
  -- The level of an index is 0 for index 0,
  -- otherwise, it is one plus the number of times
  -- that two divides said index.
- -- TODO-1: document reasons for this pragma and justify it
+ --
+ -- lvlOf must be marked terminating because, in one branch, we make a
+ -- recursive call on the quotient of the argument. Agda's termination
+ -- checker cannot confirm that this is structurally smaller than the
+ -- argument. Use of the pragma is later justified by the proof
+ -- lvlOf≡lvlOfWF that lvlOf is equal to lvlOfWF, an alternative
+ -- implementation using well-founded recursion.
  {-# TERMINATING #-}
  lvlOf : ℕ → ℕ
  lvlOf 0 = 0
- lvlOf (suc n) with 2 ∣? (suc n)
+ lvlOf (suc n) with even? (suc n)
  ...| no  _ = 1
  ...| yes e = suc (lvlOf (quotient e))
+
+ -- level of an index with well-founded recursion
+ lvlOfWFHelp : (n : ℕ) → Acc _<_ n → ℕ
+ lvlOfWFHelp 0 p = 0
+ lvlOfWFHelp (suc n) (acc rs) with even? (suc n)
+ ...| no _ = 1
+ ...| yes (divides q eq) = suc (lvlOfWFHelp q (rs q (1+n=m*2⇒m<1+n q n eq)))
+
+ lvlOfWF : ℕ → ℕ
+ lvlOfWF n = lvlOfWFHelp n (<-wellFounded n)
 
  -- When looking at an index in the form 2^k * d, the level of
  -- said index is more easily defined.
@@ -58,19 +75,28 @@ module AAOSL.Hops where
  lvlOf' (pos l _ _ _) = suc l
 
 
- ---------------------------------
- -- Properties of lvlOf and lvlOf'
+ -------------------------------------------
+ -- Properties of lvlOf, lvlOfWF, and lvlOf'
+ lvlOf≡lvlOfWFHelp : (n : ℕ) (p : Acc _<_ n) → lvlOf n ≡ lvlOfWFHelp n p
+ lvlOf≡lvlOfWFHelp 0 p = refl
+ lvlOf≡lvlOfWFHelp (suc n) (acc rs) with even? (suc n)
+ ...| no _ = refl
+ ...| yes (divides q eq) =
+   cong suc (lvlOf≡lvlOfWFHelp q (rs q (1+n=m*2⇒m<1+n q n eq)))
 
- -- TODO-1: document reasons for this pragma and justify it
- {-# TERMINATING #-}
+ lvlOf≡lvlOfWF : (n : ℕ) → lvlOf n ≡ lvlOfWF n
+ lvlOf≡lvlOfWF n = lvlOf≡lvlOfWFHelp n (<-wellFounded n)
+
  lvlOf≡lvlOf' : ∀ n → lvlOf n ≡ lvlOf' (to n)
- lvlOf≡lvlOf' zero = refl
- lvlOf≡lvlOf' (suc n) with even? (suc n)
- ...| no  odd = refl
- ...| yes prf with lvlOf≡lvlOf' (quotient prf)
- ...| ind with to (quotient prf)
- ...| zero = ⊥-elim (1+n≢0 (_∣_.equality prf))
- ...| pos l d odd prf' = cong suc ind
+ lvlOf≡lvlOf' n rewrite lvlOf≡lvlOfWF n = go n (<-wellFounded n)
+   where
+   go : (n : ℕ) (p : Acc _<_ n) → lvlOfWFHelp n p ≡ lvlOf' (to n)
+   go 0 p = refl
+   go (suc n) (acc rs) with even? (suc n)
+   ...| no _ = refl
+   ...| yes (divides q eq) with go q (rs q (1+n=m*2⇒m<1+n q n eq))
+   ...| ih with to q
+   ...| pos l d odd prf = cong suc ih
 
  lvl≥2-even : ∀ {n} → 2 ≤ lvlOf n → Even n
  lvl≥2-even {suc n} x
