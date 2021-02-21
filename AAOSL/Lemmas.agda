@@ -161,7 +161,7 @@ module AAOSL.Lemmas where
    eq' : 1 + n ≡ (1 + m) * 2
    eq' = +-cancelˡ-≡ 2 eq
 
-   ih : (1 + m) < 1 + n
+   ih : 1 + m < 1 + n
    ih = 1+n=m*2⇒m<1+n (1 + m) n eq'
 
  -------------------------------

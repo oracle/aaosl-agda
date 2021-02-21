@@ -291,12 +291,13 @@ module AAOSL.Abstract.EvoCR
     with AgreeOnCommon-∈ m₂₂ m₁₂ (∈AP-⊕-≤-r R∈m₂ (≤-trans (∈AP-≤ R∈a₁₂) (∈AP-≥ M∈a₁₁))) R-m22m12 ∈AP-tgt ∈AP-tgt
   ...| inj₁ hb = inj₁ hb
   ...| inj₂ tgt-m22m12
-    with trans (rebuild-⊕ m₂₁ m₂₂ ∈AP-tgt) (trans tgt-m22m12 (sym (rebuild-⊕ m₁₁ m₁₂ ∈AP-tgt)))
-  ...| tgt-m1m2 with rebuild-tgt-lemma (mbr-proof m₁)
+    with trans (trans (rebuild-⊕ m₁₁ m₁₂ ∈AP-tgt) (sym tgt-m22m12)) (sym (rebuild-⊕ m₂₁ m₂₂ ∈AP-tgt))
+  ...| tgt-m1m2
+    with rebuild-tgt-lemma (mbr-proof m₁)
                        {u₁ ∪₁ (tgt , auth tgt (mbr-datum m₁) u₁) }
                    | rebuild-tgt-lemma (mbr-proof m₂)
                        {u₂ ∪₁ (tgt , auth tgt (mbr-datum m₂) u₂) }
   ...| l1 | l2
-    with trans (sym l1) (trans (sym tgt-m1m2) l2)
+    with trans (sym l1) (trans tgt-m1m2 l2)
   ...| auths≡
     rewrite ≟ℕ-refl tgt = auth-inj-1 {tgt} {mbr-datum m₁} {mbr-datum m₂} (mbr-not-init m₁) auths≡
